@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: modorir-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: modorir
+      POSTGRES_PASSWORD: modorir
+      POSTGRES_DB: modorir
+    ports:
+      - "5432:5432"
+    volumes:
+      - modorir_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U modorir -d modorir"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: modorir-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://modorir:modorir@postgres:5432/modorir?schema=public"
+      API_PORT: 3000
+      API_PREFIX: api/v1
+      CORS_ORIGIN: "*"
+      AUDITORIA_USUARIO_PADRAO: sistema
+      JWT_SECRET: "dev-secret-modorir-trocar-em-producao"
+      JWT_ACCESS_EXPIRES_IN: "15m"
+      JWT_REFRESH_SECRET: "dev-refresh-modorir-trocar-em-producao"
+      JWT_REFRESH_EXPIRES_IN: "7d"
+      # Opcional: com a chave, a "Cotação de Fretes" interpreta o texto colado com IA (Claude). Sem ela usa regras.
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+    ports:
+      - "3000:3000"
+    # Monta a pasta do frontend no contêiner: ajustes em public/*.html
+    # aparecem só recarregando o navegador (sem reconstruir a imagem).
+    volumes:
+      - ./public:/app/public:ro
+
+volumes:
+  modorir_pgdata:

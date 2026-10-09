@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.env
+*.log
+.DS_Store
+uploads/boletas/*
+!uploads/boletas/.gitkeep
+backups/
+
+# exportações/amostras locais com dados de negócio
+Boleta_*.html
+*.bak
+.claude/

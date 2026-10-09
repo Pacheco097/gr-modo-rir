@@ -1,0 +1,1168 @@
+// ════════════════════════════════════════════════════════════════════════
+// MODO·RIR — Schema Prisma
+// Etapa 1: módulo Comercial › Boletas (docx seção 5.1) + tabelas-stub mínimas
+// das entidades referenciadas por FK que ainda não são módulos completos
+// (Parametrizações: Empresas do Grupo, Safras, Produtos, Modalidades,
+// Corretoras · Cadastros: Pessoas · Usuários). Essas tabelas ganham os
+// campos completos quando as etapas de Parametrizações/Cadastros/Usuários
+// forem construídas — a FK real já fica correta desde já.
+// ════════════════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────
+
+enum PerfilAcesso {
+  ADMINISTRADOR
+  COMERCIAL
+  OPERACOES
+  LOGISTICA
+  FINANCEIRO
+  DIRETORIA
+}
+
+enum ContratoTipo {
+  COMPRA
+  VENDA
+  REMESSA
+}
+
+/// Ciclo de vida do contrato (docx §6).
+enum ContratoStatus {
+  RASCUNHO
+  EMITIDO
+  EM_ANDAMENTO
+  EXECUTADO
+  CANCELADO
+}
+
+/// Situação da assinatura do contrato (docx §6).
+enum AssinaturaStatus {
+  NAO_ENVIADO
+  ENVIADO
+  ASSINADO
+  RECUSADO
+}
+
+/// Tipo de evento no histórico do contrato (docx §6: excedente de peso).
+enum FreteStatus {
+  PENDENTE
+  APROVADO
+  REPROVADO
+}
+
+enum CteStatus {
+  A_PAGAR
+  PAGO
+}
+
+enum LancamentoTipo {
+  RECEBER
+  PAGAR
+}
+
+enum LancamentoCategoria {
+  CONTRATO
+  FRETE
+  COMISSAO
+  ARMAZENAGEM
+  ANTECIPACAO
+  ROYALTS
+  OUTROS
+}
+
+enum LancamentoStatus {
+  ABERTO
+  LIQUIDADO
+}
+
+enum ArmazenagemStatus {
+  EM_VIGENCIA
+  ENCERRADA
+}
+
+enum EmbarqueStatus {
+  LIBERADO
+  EM_TRANSITO
+  ENTREGUE
+  ENCERRADO
+}
+
+enum ParametrizacaoStatus {
+  PENDENTE // amarração criada, aguardando parametrização da Mesa Comercial
+  PARAMETRIZADO // instruções de faturamento (CSC) preenchidas — libera embarque
+}
+
+enum ContratoEventoTipo {
+  CRIACAO
+  STATUS
+  ASSINATURA
+  PRECO
+  EXCEDENTE_MESMO_PRECO
+  EXCEDENTE_NOVA_BOLETA
+  EXCEDENTE_ADITIVO
+  EXCEDENTE_ABONO
+  VINCULO_BOLETA
+  IMPORTACAO_ERP
+  ENTREGA
+}
+
+/// Classificação de crédito da contraparte (avaliação manual A/B/C/D).
+enum ClassificacaoCredito {
+  A
+  B
+  C
+  D
+}
+
+enum PessoaTipo {
+  CLIENTE
+  PRODUTOR_RURAL
+  TRANSPORTADORA
+  ARMAZEM
+  CLASSIFICADORA
+  BANCO
+}
+
+/// Naturezas de operação usadas para filtrar Modalidades. O tipo da Boleta
+/// (TipoOperacaoBoleta) só cobre COMPRA | VENDA | REMESSA; ENTRADA e
+/// TRANSFERENCIA existem apenas no catálogo de Modalidades (mapeadas para
+/// COMPRA e REMESSA respectivamente na tela de Boleta).
+enum ModalidadeTipoOperacao {
+  COMPRA
+  VENDA
+  REMESSA
+  ENTRADA
+  TRANSFERENCIA
+}
+
+enum TipoOperacaoBoleta {
+  COMPRA
+  VENDA
+  REMESSA
+}
+
+enum MoedaBoleta {
+  BRL
+  USD
+}
+
+enum FreteTipoBoleta {
+  CIF
+  FOB
+  FCA
+}
+
+/// Ciclo de vida da Boleta (docx §5.1).
+/// RASCUNHO → PENDENTE → APROVADA | REPROVADA → CONTRATO_VINCULADO
+/// CANCELADA é possível a partir de RASCUNHO ou PENDENTE.
+enum StatusBoleta {
+  RASCUNHO
+  PENDENTE
+  APROVADA
+  REPROVADA
+  CANCELADA
+  CONTRATO_VINCULADO
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// PARAMETRIZAÇÕES (docx §12.2) e CADASTROS (docx §12.1)
+// CRUD completo com as convenções transversais do docx §4: soft delete +
+// createdBy/updatedBy/createdAt/updatedAt. Usuários segue como stub até a
+// etapa de Auth/RBAC (docx §12.3).
+// ─────────────────────────────────────────────────────────────────────────
+
+model EmpresaGrupo {
+  id        String    @id @default(uuid())
+  codigo    String    @unique
+  nome      String
+  tipo      String
+  cnpj      String?
+  municipio String
+  uf        String
+  ativa     Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  boletas  Boleta[]
+  fazendas Fazenda[]
+
+  @@map("empresas_grupo")
+}
+
+model Safra {
+  id        String    @id @default(uuid())
+  codigo    String    @unique
+  inicio    DateTime
+  fim       DateTime
+  ativa     Boolean   @default(true)
+  descricao String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  boletas Boleta[]
+
+  @@map("safras")
+}
+
+model Produto {
+  id             String    @id @default(uuid())
+  nome           String    @unique
+  fatorKgPorSaca Int
+  unidade        String
+  ncm            String?
+  ativo          Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdBy      String?
+  updatedBy      String?
+  deletedAt      DateTime?
+
+  /// Aponta do produto "X A FIXAR" para o seu equivalente "X FIXO",
+  /// usado ao encerrar a formação de preço (troca automática de produto).
+  produtoFixoEquivalenteId String?
+  produtoFixoEquivalente   Produto?  @relation("ProdutoFixoEquivalente", fields: [produtoFixoEquivalenteId], references: [id])
+  produtosAFixar           Produto[] @relation("ProdutoFixoEquivalente")
+
+  boletas   Boleta[]
+  contratos Contrato[]
+
+  @@map("produtos")
+}
+
+model Modalidade {
+  id            String                 @id @default(uuid())
+  empresaLabel  String
+  nome          String                 @unique
+  tipoOperacao  ModalidadeTipoOperacao
+  descricao     String?
+  ativa         Boolean                @default(true)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  createdBy     String?
+  updatedBy     String?
+  deletedAt     DateTime?
+
+  boletas Boleta[]
+
+  @@map("modalidades")
+}
+
+model Corretora {
+  id                  String    @id @default(uuid())
+  nome                String
+  cnpj                String?
+  contato             String?
+  telefone            String?
+  email               String?
+  corretagemPctPadrao Decimal   @default(0.30) @db.Decimal(6, 2)
+  ativa               Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  createdBy           String?
+  updatedBy           String?
+  deletedAt           DateTime?
+
+  boletas Boleta[]
+
+  @@map("corretoras")
+}
+
+/// Fazendas / unidades de armazenagem (docx §12.2). Uma fazenda pode
+/// pertencer a uma Empresa do Grupo.
+model Fazenda {
+  id             String    @id @default(uuid())
+  nome           String
+  empresaGrupoId String?
+  empresaGrupo   EmpresaGrupo? @relation(fields: [empresaGrupoId], references: [id])
+  municipio      String?
+  uf             String?
+  areaHectares   Decimal   @default(0) @db.Decimal(12, 2)
+  ativa          Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdBy      String?
+  updatedBy      String?
+  deletedAt      DateTime?
+
+  @@map("fazendas")
+}
+
+/// Parâmetros financeiros globais do sistema (docx §12.2). Tabela de linha
+/// única (singleton) — id fixo = "default". A taxa de juros do descasamento
+/// alimenta o custo financeiro da boleta e a despesa financeira do resultado.
+model ParametroFinanceiro {
+  id                        String   @id @default("default")
+  taxaJurosDescasamentoAmPct Decimal  @default(1.50) @db.Decimal(8, 4)
+  classificacaoPadraoRsSc   Decimal  @default(1.90) @db.Decimal(10, 4)
+  /// Fixo, editável apenas por administrador (docx / HTML: 0,25%).
+  custoQuebraPct            Decimal  @default(0.25) @db.Decimal(8, 4)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  updatedBy                 String?
+
+  @@map("parametros_financeiros")
+}
+
+/// Cadastro único de pessoas (docx §12.1), segmentado por tipo. UF e
+/// município determinam operação intra/interestadual (ICMS do frete).
+model Pessoa {
+  id                String     @id @default(uuid())
+  codigo            String     @unique
+  nome              String
+  tipo              PessoaTipo
+  documento         String
+  inscricaoEstadual String?
+  municipio         String?
+  uf                String?
+  telefone          String?
+  email             String?
+  // Dados bancários (relevantes sobretudo para Produtor Rural)
+  banco             String?
+  agenciaConta      String?
+  pix               String?
+  /// Avaliação de crédito (A/B/C/D). Nulo = ainda não avaliado (ex.: importado
+  /// por Excel) — o frontend alerta para completar via edição do cadastro.
+  classificacaoCredito ClassificacaoCredito?
+  ativo             Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  createdBy         String?
+  updatedBy         String?
+  deletedAt         DateTime?
+
+  boletasComoContraparte Boleta[]
+  contratos              Contrato[]
+  ctesComoTransportadora Cte[]
+
+  @@index([tipo])
+  @@map("pessoas")
+}
+
+/// Usuários do sistema (docx §12.3) — autenticação JWT + RBAC por perfil.
+model Usuario {
+  id               String       @id @default(uuid())
+  nome             String
+  email            String       @unique
+  telefone         String?
+  perfil           PerfilAcesso
+  /// Hash bcrypt da senha. Opcional para não quebrar linhas legadas; o login
+  /// exige senha definida.
+  senhaHash        String?
+  /// Hash do refresh token ativo (rotação de sessão). Nulo = sem sessão.
+  refreshTokenHash String?
+  ultimoAcesso     DateTime?
+  ativo            Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  createdBy        String?
+  updatedBy        String?
+  deletedAt        DateTime?
+
+  boletasComoResponsavel Boleta[]
+
+  @@map("usuarios")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// BOLETA (docx §5.1)
+// ─────────────────────────────────────────────────────────────────────────
+
+model Boleta {
+  id     String             @id @default(uuid())
+  numero String             @unique
+  tipo   TipoOperacaoBoleta
+  status  StatusBoleta       @default(RASCUNHO)
+
+  empresaGrupoId String
+  empresaGrupo   EmpresaGrupo @relation(fields: [empresaGrupoId], references: [id])
+
+  safraId String
+  safra   Safra  @relation(fields: [safraId], references: [id])
+
+  dataNegociacao DateTime
+
+  // ── Contraparte (snapshot no momento da boleta + link opcional ao cadastro) ──
+  contraparteId          String?
+  contraparte            Pessoa?  @relation(fields: [contraparteId], references: [id])
+  contraparteNome        String
+  contraparteDocumento   String
+  contraparteIe          String?
+  contraparteMunicipio   String?
+  contraparteUf          String?
+
+  // ── Produto e modalidade ──
+  produtoId      String
+  produto        Produto    @relation(fields: [produtoId], references: [id])
+  modalidadeId   String
+  modalidade     Modalidade @relation(fields: [modalidadeId], references: [id])
+  fatorKgPorSaca Int
+
+  // ── Quantidade ──
+  quantidadeSc Decimal @db.Decimal(18, 6)
+  pesoKg       Decimal @db.Decimal(16, 3)
+
+  // ── Preço e pagamento ──
+  preco                   Decimal?    @db.Decimal(14, 4)
+  moeda                   MoedaBoleta @default(BRL)
+  condicaoPagamento       String
+  /// Data de pagamento (compra) / recebimento (venda). Herdada pelo contrato como
+  /// vencimento -> alimenta Financeiro > Contratos e o fluxo de caixa.
+  dataPagamento           DateTime?
+  icmsPct                 Decimal     @default(0) @db.Decimal(6, 3)
+  quebraTecnicaTradingPct Decimal     @default(0) @db.Decimal(6, 3)
+  custoFinanceiroPct      Decimal     @default(0) @db.Decimal(6, 3)
+
+  // ── Armazenagem (bloco condicional — alimenta o subsetor Armazenagem, §9) ──
+  temArmazenagem      Boolean @default(false)
+  armPadronizacaoRate Decimal @default(0) @db.Decimal(10, 4)
+  armArmazenagemRate  Decimal @default(0) @db.Decimal(10, 4)
+  armQuebraTecnicaPct Decimal @default(0) @db.Decimal(6, 3)
+
+  // ── Frete / Logística ──
+  freteTipo         FreteTipoBoleta
+  freteRsPorTon     Decimal          @db.Decimal(12, 4)
+  dataInicioEntrega DateTime?
+  dataFimEntrega    DateTime?
+  localEntrega      String?
+
+  // ── Corretora / Intermediação ──
+  corretoraId   String?
+  corretora     Corretora? @relation(fields: [corretoraId], references: [id])
+  corretagemPct Decimal    @default(0) @db.Decimal(6, 3)
+
+  // ── Outros custos operacionais ──
+  comissaoInternaPct                Decimal @default(0) @db.Decimal(6, 3)
+  custoArmazenagemSimplificadaRsSc  Decimal @default(0) @db.Decimal(10, 4)
+  /// Apenas exibição/histórico — NÃO entra no somatório de custos do
+  /// resultado projetado (replica o comportamento do HTML de referência,
+  /// onde só a lista de `classificadoras` conta no cálculo).
+  classificacaoPadraoRsSc           Decimal @default(1.90) @db.Decimal(10, 4)
+  /// Flag operacional: esta operação PASSA por classificação de grãos. Se true,
+  /// após a liberação do embarque o contrato cai na aba Financeiro › Classificação
+  /// para lançar empresa/valor/data (custo que reduz o resultado do contrato).
+  temClassificacao                  Boolean @default(false)
+  localArmazem                      String?
+
+  // ── Comercial responsável ──
+  comercialResponsavelId String
+  comercialResponsavel   Usuario @relation(fields: [comercialResponsavelId], references: [id])
+
+  observacoes String?
+
+  // ── Resultado projetado (sempre recalculado e persistido pelo servidor) ──
+  valorBruto                   Decimal  @default(0) @db.Decimal(16, 4)
+  valorFreteTotal               Decimal  @default(0) @db.Decimal(16, 4)
+  valorCorretagem               Decimal  @default(0) @db.Decimal(16, 4)
+  valorComissaoInterna          Decimal  @default(0) @db.Decimal(16, 4)
+  valorArmazenagemSimplificada  Decimal  @default(0) @db.Decimal(16, 4)
+  valorClassificacao            Decimal  @default(0) @db.Decimal(16, 4)
+  valorCustosTotal              Decimal  @default(0) @db.Decimal(16, 4)
+  valorLiquido                  Decimal  @default(0) @db.Decimal(16, 4)
+  margemPct                     Decimal  @default(0) @db.Decimal(8, 4)
+  resultadoPorSaca               Decimal  @default(0) @db.Decimal(14, 4)
+  resultadoPorKg                 Decimal  @default(0) @db.Decimal(14, 6)
+  creditoIcms                    Decimal  @default(0) @db.Decimal(16, 4)
+  creditoPisCofins                Decimal  @default(0) @db.Decimal(16, 4)
+  valorLiquidoComFiscal           Decimal? @db.Decimal(16, 4)
+  resultadoPorSacaComFiscal       Decimal? @db.Decimal(14, 4)
+
+  // ── Aprovação / reprovação / cancelamento ──
+  aprovadoPor         String?
+  aprovadoEm          DateTime?
+  motivoReprovacao    String?
+  reprovadoPor        String?
+  reprovadoEm         DateTime?
+  motivoCancelamento  String?
+  canceladoPor        String?
+  canceladoEm         DateTime?
+
+  // ── Vínculo com contrato jurídico (placeholder até o módulo Contratos) ──
+  numeroContratoVinculado String?
+  dataVinculacaoContrato  DateTime?
+
+  // ── Auditoria / soft delete (convenção transversal docx §4) ──
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  classificadoras        BoletaClassificadora[]
+  documentosConfirmacao  BoletaDocumento[]
+  historico              BoletaHistorico[]
+  contratos              Contrato[]
+
+  @@index([status])
+  @@index([tipo])
+  @@index([empresaGrupoId])
+  @@index([safraId])
+  @@index([produtoId])
+  @@map("boletas")
+}
+
+/// Lista dinâmica de classificadoras (uma boleta pode ter mais de uma).
+/// custo total = Σ(valorRsPorSc) × quantidadeSc.
+model BoletaClassificadora {
+  id           String  @id @default(uuid())
+  boletaId     String
+  boleta       Boleta  @relation(fields: [boletaId], references: [id], onDelete: Cascade)
+  nome         String
+  valorRsPorSc Decimal @db.Decimal(10, 4)
+
+  @@map("boleta_classificadoras")
+}
+
+
+/// Documento de confirmação de compra — obrigatório antes de enviar uma
+/// boleta futura ("A Fixar") para aprovação.
+model BoletaDocumento {
+  id             String   @id @default(uuid())
+  boletaId       String
+  boleta         Boleta   @relation(fields: [boletaId], references: [id], onDelete: Cascade)
+  nomeArquivo    String
+  caminhoArquivo String
+  tamanhoBytes   Int
+  enviadoPor     String?
+  enviadoEm      DateTime @default(now())
+
+  @@map("boleta_documentos")
+}
+
+/// Trilha de auditoria de mudança de status (docx §4: "trilha de auditoria
+/// para toda ação com impacto financeiro ou de status").
+model BoletaHistorico {
+  id             String        @id @default(uuid())
+  boletaId       String
+  boleta         Boleta        @relation(fields: [boletaId], references: [id], onDelete: Cascade)
+  statusAnterior StatusBoleta?
+  statusNovo     StatusBoleta
+  usuario        String
+  motivo         String?
+  criadoEm       DateTime      @default(now())
+
+  @@map("boleta_historico")
+}
+
+/// Contador atômico do número da boleta por ano (BO-{ano}-{sequência}).
+model BoletaSequencia {
+  ano          Int @id
+  ultimoNumero Int @default(0)
+
+  @@map("boleta_sequencia")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CONTRATOS (docx §6)
+// Une a informação da boleta (comercial) à do ERP/Protheus (fiscal/operacional).
+// ─────────────────────────────────────────────────────────────────────────
+
+model Contrato {
+  id             String         @id @default(uuid())
+  /// (DESATIVADO 2026-08-05) Número interno aleatório — não é mais gerado nem
+  /// exibido. Mantido nullable só para não quebrar contratos antigos.
+  numeroSistema  String?        @unique
+  /// Número do contrato no ERP (Protheus/Maxicon) — IDENTIFICADOR PRINCIPAL do
+  /// contrato em todo o fluxo. Obrigatório ao abrir o contrato (regra de negócio).
+  numeroErpMaxicon String?      @unique
+  tipo           ContratoTipo
+  status         ContratoStatus @default(RASCUNHO)
+
+  // ── Vínculo com a boleta de origem (comercial) ──
+  boletaId String?
+  boleta   Boleta? @relation(fields: [boletaId], references: [id])
+
+  // ── Contraparte (snapshot + link opcional ao cadastro) ──
+  contraparteId   String?
+  contraparte     Pessoa? @relation(fields: [contraparteId], references: [id])
+  contraparteNome String
+
+  // ── Produto ──
+  produtoId String?
+  produto   Produto? @relation(fields: [produtoId], references: [id])
+
+  // ── Quantidades e preço ──
+  quantidadeContratadaSc Decimal  @db.Decimal(18, 6)
+  quantidadeEntregueSc   Decimal  @default(0) @db.Decimal(18, 6)
+  preco                  Decimal? @db.Decimal(14, 4)
+  dataVencimento         DateTime?
+
+  // ── Assinatura ──
+  assinatura        AssinaturaStatus @default(NAO_ENVIADO)
+  dataEnvioAssinatura DateTime?
+  dataAssinatura    DateTime?
+
+  // ── Custos herdados da boleta (usados na amarração/resultado) ──
+  quebraTecnicaPct   Decimal @default(0) @db.Decimal(6, 3)
+  custoFinanceiroPct Decimal @default(0) @db.Decimal(6, 3)
+  /// % de ICMS da operação (herdado da boleta). O `preco` é SEM ICMS; o ICMS
+  /// entra como ajuste no resultado da amarração: (preco/(1-icms) - preco) × qtd,
+  /// negativo na compra e positivo na venda.
+  icmsPct            Decimal @default(0) @db.Decimal(6, 3)
+
+  // ── Armazenagem herdada da boleta ──
+  temArmazenagem      Boolean @default(false)
+  armPadronizacaoRate Decimal @default(0) @db.Decimal(10, 4)
+  armArmazenagemRate  Decimal @default(0) @db.Decimal(10, 4)
+  armQuebraTecnicaPct Decimal @default(0) @db.Decimal(6, 3)
+
+  // ── Classificação de grãos (herdada da boleta) ──
+  /// Se true, após a liberação do embarque o contrato entra na aba
+  /// Financeiro › Classificação para lançar empresa/valor/data.
+  temClassificacao Boolean               @default(false)
+  classificacao    ClassificacaoContrato?
+
+  observacoes String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  documentos ContratoDocumento[]
+  historico  ContratoHistorico[]
+
+  amarracoesComoCompra  Amarracao[] @relation("AmarracaoCompra")
+  amarracoesComoVenda   Amarracao[] @relation("AmarracaoVenda")
+  amarracoesComoRemessa Amarracao[] @relation("AmarracaoRemessa")
+  armazenagens         Armazenagem[]
+  parcelas             ContratoParcela[]
+  corretagem           CorretagemContrato?
+
+  @@index([status])
+  @@index([tipo])
+  @@index([boletaId])
+  @@index([numeroErpMaxicon])
+  @@map("contratos")
+}
+
+enum ClassificacaoStatus {
+  PENDENTE // amarração criada, aguardando a classificadora (definida na liberação do embarque)
+  AGUARDANDO_PAGAMENTO // classificadora definida no embarque → "programar para pagamento"
+  PROGRAMADA // previsto/realizado/data lançados → entra no fluxo de caixa e no resultado
+  PREENCHIDA // legado (model antigo por contrato) — não usar no fluxo novo por amarração
+}
+
+/// Classificação de grãos POR AMARRAÇÃO (subsetor Operações › Classificação).
+/// Ciclo: PENDENTE (amarração criada, se compra OU venda tem `temClassificacao`)
+/// → AGUARDANDO_PAGAMENTO (classificadora definida na liberação do embarque)
+/// → PROGRAMADA (previsto/realizado/data de pagamento lançados). O realizado
+/// alimenta o Fluxo de Caixa (saída na data de pagamento) e é o custo de
+/// classificação no "Resultado por contrato". O saving = previsto − realizado.
+model ClassificacaoAmarracao {
+  id                    String              @id @default(uuid())
+  amarracaoId           String              @unique
+  amarracao             Amarracao           @relation(fields: [amarracaoId], references: [id])
+  empresaClassificadora String? // classificadora principal (legado / 1ª do previsto)
+  classificadoras       String[]            @default([]) // classificadoras PREVISTAS para o embarque (lista editável)
+  previsto              Decimal?            @db.Decimal(16, 4) // custo PREVISTO (total estimado) de classificação (R$)
+  realizado             Decimal?            @db.Decimal(16, 4) // LEGADO — o realizado agora é a soma dos pagamentos
+  dataPagamento         String? // LEGADO — as datas ficam em cada pagamento
+  status                ClassificacaoStatus @default(PENDENTE)
+  pagamentos            ClassificacaoPagamento[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  createdBy             String?
+  updatedBy             String?
+
+  @@index([status])
+  @@map("classificacoes_amarracao")
+}
+
+/// Parcela de pagamento da classificação (lançamento semanal/mensal). O
+/// realizado da classificação é a SOMA das parcelas; cada parcela entra no
+/// Fluxo de Caixa (saída) na sua data, com o nome da classificadora.
+model ClassificacaoPagamento {
+  id              String                 @id @default(uuid())
+  classificacaoId String
+  classificacao   ClassificacaoAmarracao @relation(fields: [classificacaoId], references: [id], onDelete: Cascade)
+  valor           Decimal                @db.Decimal(16, 4)
+  dataPagamento   String // "YYYY-MM-DD"
+  /// Classificadora que recebeu ESTA parcela (a amarração pode ter mais de uma).
+  empresaClassificadora String?
+  createdAt       DateTime               @default(now())
+  createdBy       String?
+
+  @@index([classificacaoId])
+  @@map("classificacoes_pagamentos")
+}
+
+/// Classificação de grãos por contrato (docx). Criada como PENDENTE quando o
+/// embarque do contrato é liberado e o contrato tem `temClassificacao`. A
+/// logística/financeiro preenche empresa classificadora, valor e data →
+/// PREENCHIDA, entrando no fluxo de caixa e como custo no resultado do contrato.
+model ClassificacaoContrato {
+  id                      String              @id @default(uuid())
+  contratoId              String              @unique
+  contrato                Contrato            @relation(fields: [contratoId], references: [id])
+  embarqueId              String? // embarque cuja liberação disparou a pendência
+  empresaClassificadora   String? // nome livre da empresa classificadora
+  empresaClassificadoraId String? // opcional: Pessoa tipo CLASSIFICADORA
+  valor                   Decimal?            @db.Decimal(16, 4) // custo total da classificação
+  data                    String? // "YYYY-MM-DD" — data de pagamento/lançamento
+  status                  ClassificacaoStatus @default(PENDENTE)
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  createdBy               String?
+  updatedBy               String?
+
+  @@index([status])
+  @@map("classificacoes_contrato")
+}
+
+/// Cronograma de PAGAMENTO (contrato de compra) ou RECEBIMENTO (contrato de venda)
+/// por contrato. Uma parcela = um movimento de caixa {valor, data}. Reprogramável
+/// (muda a data) e parcelável (várias parcelas por contrato). Fonte das datas do
+/// JUROS (saldo financiado dia a dia) e do Fluxo de Caixa. O tipo (PAGAR/RECEBER)
+/// é derivado do tipo do contrato (COMPRA→PAGAR, VENDA→RECEBER).
+model ContratoParcela {
+  id         String   @id @default(uuid())
+  contratoId String
+  contrato   Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  valor      Decimal  @db.Decimal(16, 4)
+  data       String // "YYYY-MM-DD"
+  createdAt  DateTime @default(now())
+  createdBy  String?
+
+  @@index([contratoId])
+  @@map("contrato_parcelas")
+}
+
+model ContratoDocumento {
+  id         String   @id @default(uuid())
+  contratoId String
+  contrato   Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  nome       String
+  caminho    String
+  tamanhoKb  Int      @default(0)
+  criadoEm   DateTime @default(now())
+  criadoPor  String?
+
+  @@map("contrato_documentos")
+}
+
+/// Trilha de eventos do contrato (status, assinatura, preço, excedente de peso).
+model ContratoHistorico {
+  id         String             @id @default(uuid())
+  contratoId String
+  contrato   Contrato           @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  evento     ContratoEventoTipo
+  de         String?
+  para       String?
+  detalhe    String?
+  usuario    String?
+  criadoEm   DateTime           @default(now())
+
+  @@index([contratoId])
+  @@map("contrato_historico")
+}
+
+/// Contador atômico do número do contrato por ano (CS-{ano}-{sequência}).
+model ContratoSequencia {
+  ano          Int @id
+  ultimoNumero Int @default(0)
+
+  @@map("contrato_sequencia")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// LOGÍSTICA (docx §7)
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Amarração N:N por quantidade — define qual contrato de compra alimenta qual
+/// contrato de venda (docx §7.2).
+model Amarracao {
+  id               String   @id @default(uuid())
+  compraContratoId String
+  compraContrato   Contrato @relation("AmarracaoCompra", fields: [compraContratoId], references: [id])
+  /// VENDA é opcional: uma amarração pode ser compra × VENDA (comercial, gera resultado)
+  /// OU compra × REMESSA (operacional — transporte da compra p/ armazém/terceiro, sem venda ainda).
+  vendaContratoId  String?
+  vendaContrato    Contrato? @relation("AmarracaoVenda", fields: [vendaContratoId], references: [id])
+
+  /// Destino REMESSA (empresa B): quando preenchido e vendaContratoId nulo, esta é uma
+  /// amarração de REMESSA. A compra continua "sem casamento" (livre p/ casar com uma venda depois);
+  /// o operacional roda sobre ela e os custos são herdados pela futura compra × venda.
+  remessaContratoId String?
+  remessaContrato   Contrato? @relation("AmarracaoRemessa", fields: [remessaContratoId], references: [id])
+
+  quantidadeSc Decimal   @db.Decimal(18, 6)
+  criadoEm     DateTime  @default(now())
+  criadoPor    String?
+  deletedAt    DateTime?
+
+  /// Componentes do resultado (digitados na tela "Resultado por contrato").
+  /// NULL = usar o valor AUTO calculado; valor = override manual. Total em R$.
+  custoArmazenagem   Decimal? @db.Decimal(14, 2)
+  custoClassificacao Decimal? @db.Decimal(14, 2)
+  custoJuros         Decimal? @db.Decimal(14, 2)
+  custoFrete         Decimal? @db.Decimal(14, 2) // frete (soma dos CT-es do par); NULL = AUTO
+  fretePisCofins     Decimal? @db.Decimal(14, 2) // conciliação: PIS/COFINS do frete (+ receita / − despesa); NULL = não possui
+  freteIcms          Decimal? @db.Decimal(14, 2) // conciliação: ICMS do frete (+ receita / − despesa); NULL = não possui
+  classifPisCofins   Decimal? @db.Decimal(14, 2) // conciliação: PIS/COFINS da classificação (+ receita / − despesa); NULL = não possui
+  corretagemPisCofins Decimal? @db.Decimal(14, 2) // conciliação: PIS/COFINS da corretagem (+ receita / − despesa); NULL = não possui
+  icmsManual         Decimal? @db.Decimal(14, 2) // conciliação: ICMS do contrato (override do ajuste auto venda−compra); NULL = auto
+  receitaPisCofins   Decimal? @db.Decimal(14, 2) // conciliação: PIS/COFINS do contrato (+ receita / − despesa)
+
+  /// Conciliação de VOLUME (sobra OU quebra em relação ao previsto).
+  /// Status: NULL/PENDENTE = aguardando decisão do comercial;
+  ///   COMPLEMENTO = SOBRA cobrada (gera receita + conta a receber no fluxo de caixa);
+  ///   DESCONTO    = QUEBRA descontada (reduz receita, custo de compra e fluxo de caixa);
+  ///   SEM_COMPLEMENTO = não faz nada (finaliza a pendência).
+  volConcStatus         String?  // NULL | 'COMPLEMENTO' | 'DESCONTO' | 'SEM_COMPLEMENTO'
+  volConcSobraSc        Decimal? @db.Decimal(18, 6) // volume conciliado em sacas (sobra ou falta, snapshot)
+  volConcPrecoModo      String?  // COMPLEMENTO: 'MESMO' (preço de venda) | 'NOVO' (preço negociado)
+  volConcPrecoRsSc      Decimal? @db.Decimal(14, 4) // COMPLEMENTO: R$/sc aplicado ao excedente
+  volConcValor          Decimal? @db.Decimal(14, 2) // COMPLEMENTO: complemento total = sobraSc × precoRsSc
+  volConcDescReceita    Decimal? @db.Decimal(14, 2) // DESCONTO: redução na receita (venda) pela quebra
+  volConcDescCusto      Decimal? @db.Decimal(14, 2) // DESCONTO: redução no custo de compra pela quebra
+  volConcDataRecebimento String? // data do complemento (COMPLEMENTO) ou do ajuste no fluxo (DESCONTO) — YYYY-MM-DD
+
+  fretes         Frete[]
+  embarques      Embarque[]
+  parametrizacao Parametrizacao?
+  classificacao  ClassificacaoAmarracao?
+
+  @@index([compraContratoId])
+  @@index([vendaContratoId])
+  @@index([remessaContratoId])
+  @@map("amarracoes")
+}
+
+/// Parametrização do contrato (Mesa Comercial · Operações). A amarração cai aqui
+/// logo após ser criada; a logística só libera embarque depois de PARAMETRIZADO.
+/// Guarda as instruções de faturamento (CSC) que seguem para o subsetor Embarques.
+model Parametrizacao {
+  id                 String                @id @default(uuid())
+  amarracaoId        String                @unique
+  amarracao          Amarracao             @relation(fields: [amarracaoId], references: [id])
+  tipoOperacao       String?
+  instrucaoDoc       String?
+  /// Conteúdo do documento de instrução (CSC) em data URL (base64) — p/ download.
+  instrucaoDocConteudo String?             @db.Text
+  observacao         String?
+  status             ParametrizacaoStatus  @default(PENDENTE)
+  dataParametrizacao DateTime?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  createdBy          String?
+  updatedBy          String?
+  deletedAt          DateTime?
+
+  @@index([status])
+  @@map("parametrizacoes")
+}
+
+/// Aprovação de Frete (docx §7): a logística lança o frete do período e aprova.
+model Frete {
+  id            String      @id @default(uuid())
+  amarracaoId   String
+  amarracao     Amarracao   @relation(fields: [amarracaoId], references: [id])
+  referencia    String
+  quantidadeSc  Decimal     @db.Decimal(18, 6)
+  freteRsPorTon Decimal     @db.Decimal(12, 4)
+  status        FreteStatus @default(PENDENTE)
+  aprovadoPor   String?
+  aprovadoEm    DateTime?
+  observacao    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  createdBy     String?
+  updatedBy     String?
+  deletedAt     DateTime?
+
+  @@index([amarracaoId])
+  @@index([status])
+  @@map("fretes")
+}
+
+/// Liberação de Embarque → Encerramento (docx §7). O encerramento registra o
+/// peso descarregado (base para % performado, comissão e armazenagem).
+model Embarque {
+  id                 String         @id @default(uuid())
+  amarracaoId        String
+  amarracao          Amarracao      @relation(fields: [amarracaoId], references: [id])
+  quantidadeSc       Decimal        @db.Decimal(18, 6)
+  status             EmbarqueStatus @default(LIBERADO)
+  dataLiberacao      DateTime?
+  dataEncerramento   DateTime?
+  pesoDescarregadoKg Decimal        @default(0) @db.Decimal(16, 3)
+  observacao         String?
+  /// Lote do embarque (preenchido no pop-up pós-liberação; segue para o CSC na
+  /// aba Embarques; editável). Transportadoras do lote + classificadora responsável.
+  transportadoras    String[]       @default([]) // todas do lote (pool) — DERIVADO de transportadorasLote
+  transportadorasVigentes String[]  @default([]) // subconjunto EM VIGÊNCIA — DERIVADO de transportadorasLote
+  caminhoesPosicionados   Int       @default(0)  // total de caminhões (soma das vigentes) — DERIVADO
+  /// Lote detalhado por transportadora: [{ nome, vigente, caminhoes }]. Fonte da
+  /// verdade da edição do embarque; os campos acima são derivados p/ compatibilidade.
+  transportadorasLote     Json?
+  classificadora     String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  createdBy          String?
+  updatedBy          String?
+  deletedAt          DateTime?
+
+  ctes Cte[]
+
+  @@index([amarracaoId])
+  @@index([status])
+  @@map("embarques")
+}
+
+/// Pagamento de Frete via CT-e (docx §8). O valor entra no fluxo de caixa pelo
+/// total COM ICMS (desembolso), diferente do custo (sem ICMS).
+model Cte {
+  id                 String    @id @default(uuid())
+  numeroCte          String
+  embarqueId         String?
+  embarque           Embarque? @relation(fields: [embarqueId], references: [id])
+  transportadoraId   String?
+  transportadora     Pessoa?   @relation(fields: [transportadoraId], references: [id])
+  transportadoraNome String
+  valorTotal         Decimal   @db.Decimal(16, 4)
+  icmsPct            Decimal   @default(0) @db.Decimal(6, 3)
+  dataEmissao        DateTime?
+  dataPagamento      DateTime?
+  status             CteStatus @default(A_PAGAR)
+  observacao         String?
+
+  // --- Relatório de CT-e importado (tela Pagamento de Frete, docx §8) ---
+  chave         String? @unique // chave de acesso — identidade para dedupe no import
+  /// Contratos da amarração (2 primeiras colunas do Excel): nº do contrato de
+  /// COMPRA e de VENDA. Chave do frete previsto (por par CTR compra × venda).
+  ctrCompra     String?
+  ctrVenda      String?
+  codEmpresa    Int?
+  empresa       String?
+  numDoc        String?
+  serie         String?
+  totalICMS     Decimal @default(0) @db.Decimal(16, 4)
+  tpFat         String?
+  cnpj          String?
+  emitente      String?
+  dtEmissao     String? // string de exibição do relatório (ex.: "23/06/2026 09:03")
+  statusSefaz   String?
+  stManifesto   String?
+  stErp         String?
+  dataRegistro  String?
+  nf            String?
+  serieNf       String?
+  nsu           String?
+  produtoCarga  String?
+  cidadeOrigem  String?
+  cidadeDestino String?
+  qtdCarga      Decimal? @db.Decimal(16, 4)
+  unidCarga     String?
+  tipoDest      String?
+
+  // --- Campos de controle da logística/financeiro ---
+  fretePrevisto    Decimal? @db.Decimal(16, 4) // override manual R$/t (senão puxa da tabela FretePrevisto)
+  numProcesso      String?
+  dataPagamentoStr String? // "YYYY-MM-DD" digitado na tela (round-trip exato, sem timezone)
+  aprovado         Boolean  @default(false) // marcado "no fluxo" de pagamento
+  retirado         Boolean  @default(false) // retirado do fluxo (aba "CT-Es retirados")
+  motivoRetirada   String?
+  catRetirada      String[] @default([]) // sefaz | dest | manifesto | manual
+  dataRetirada     String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([retirado])
+  @@map("ctes")
+}
+
+/// Frete previsto por rota e mês (R$/t) — tabela de referência editada na tela
+/// Pagamento de Frete (aba Saving). Usada para calcular o saving previsto × realizado.
+/// Frete previsto por ROTA e PERÍODO DE VIGÊNCIA (docx / regra do usuário).
+/// O comercial lança R$/t para uma rota com data de início e fim de vigência.
+/// Um CT-e pega o valor cujo intervalo [inicio, fim] contém a data do CT-e.
+/// Datas de vigência ficam como texto "YYYY-MM-DD" (comparação lexicográfica, sem timezone).
+model FretePrevisto {
+  id             String   @id @default(uuid())
+  /// NOVO (2026-08-11): frete previsto por PAR de contratos da amarração
+  /// (CTR compra × CTR venda). Os campos rota/vigência ficaram legados (nullable).
+  ctrCompra      String?
+  ctrVenda       String?
+  rota           String? // legado "Origem»Destino"
+  valor          Decimal  @db.Decimal(16, 4) // R$/t
+  vigenciaInicio String? // legado "YYYY-MM-DD"
+  vigenciaFim    String? // legado "YYYY-MM-DD"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdBy      String?
+  updatedBy      String?
+
+  @@index([rota])
+  @@map("fretes_previstos")
+}
+
+/// Registros lidos do DACTE (PDF MaxDACTE) para conferência CT-e × Excel na tela
+/// Pagamento de Frete. Chave: número do CT-e normalizado.
+model Dacte {
+  id        String   @id @default(uuid())
+  cte       String   @unique // número do CT-e normalizado
+  serie     String?
+  transp    String?
+  nf        String?
+  org       String?
+  dst       String?
+  prod      String?
+  peso      Decimal? @db.Decimal(16, 4)
+  valor     Decimal? @db.Decimal(16, 4)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+
+  @@map("dactes")
+}
+
+/// Armazenagem (docx §9): contrato de compra com temArmazenagem entra "Em
+/// vigência" e acumula custo (padronização única + armazenagem por quinzena +
+/// quebra técnica). Guarda previsto e permite registrar o realizado.
+model Armazenagem {
+  id               String            @id @default(uuid())
+  contratoId       String
+  contrato         Contrato          @relation(fields: [contratoId], references: [id])
+  status           ArmazenagemStatus @default(EM_VIGENCIA)
+  quantidadeSc     Decimal           @db.Decimal(18, 6)
+  padronizacaoRate Decimal           @db.Decimal(10, 4)
+  armazenagemRate  Decimal           @db.Decimal(10, 4)
+  quebraPct        Decimal           @db.Decimal(6, 3)
+  quinzenas        Int               @default(0)
+  /// Carência em QUINZENAS isentas de armazenagem/quebra (tempo de graça).
+  carenciaQuinzenas Int              @default(0)
+  /// Preço da saca (R$/sc) usado para VALORAR a quebra técnica.
+  precoScRs        Decimal?          @db.Decimal(14, 4)
+  custoRealizadoRs Decimal?          @db.Decimal(16, 4)
+  /// dataInicio = DATA DE RECEBIMENTO do produto (início da contagem das quinzenas).
+  dataInicio       DateTime?
+  dataEncerramento DateTime?
+
+  /// Pagamento da armazenagem (programável): valor total editável, data e status.
+  /// Ao lançar, gera um LancamentoFinanceiro (PAGAR/ARMAZENAGEM) no Fluxo de Caixa.
+  valorPagamento   Decimal?          @db.Decimal(16, 4)
+  dataPagamento    String?
+  pagamentoStatus  String            @default("PENDENTE")
+  lancamentoId     String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  createdBy        String?
+  updatedBy        String?
+  deletedAt        DateTime?
+
+  @@index([contratoId])
+  @@index([status])
+  @@map("armazenagens")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// FINANCEIRO (docx §10)
+// Todo lançamento desemboca no Fluxo de Caixa: RECEBER = entrada (verde),
+// PAGAR = saída (vermelho), pela data de vencimento/liquidação.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Corretagem por CONTRATO (compra ou venda). Todo contrato aberto cai na aba
+/// Operacional › Corretagem: corretora + valor total a pagar. Ao lançar (com a data
+/// de pagamento) vira um LancamentoFinanceiro (PAGAR/COMISSAO) e custo no dashboard.
+model CorretagemContrato {
+  id            String   @id @default(uuid())
+  contratoId    String   @unique
+  contrato      Contrato @relation(fields: [contratoId], references: [id])
+  corretoraNome String?
+  valorTotal    Decimal  @default(0) @db.Decimal(16, 2)
+  dataPagamento String? // YYYY-MM-DD
+  status        String   @default("PENDENTE") // PENDENTE | LANCADO
+  lancamentoId  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdBy     String?
+  updatedBy     String?
+
+  @@index([status])
+  @@map("corretagem_contratos")
+}
+
+model LancamentoFinanceiro {
+  id             String              @id @default(uuid())
+  tipo           LancamentoTipo
+  categoria      LancamentoCategoria
+  descricao      String
+  valor          Decimal             @db.Decimal(16, 4)
+  dataVencimento DateTime
+  dataLiquidacao DateTime?
+  status         LancamentoStatus    @default(ABERTO)
+  /// Vínculo opcional com o contrato de origem (CR/CP, comissão, royalts).
+  contratoId     String?
+  /// Frete entra no caixa pelo total COM ICMS (docx §10.1).
+  comIcms        Boolean             @default(false)
+  observacao     String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  createdBy      String?
+  updatedBy      String?
+  deletedAt      DateTime?
+
+  @@index([tipo])
+  @@index([categoria])
+  @@index([status])
+  @@index([dataVencimento])
+  @@map("lancamentos_financeiros")
+}
+
+/// Cotação de frete recebida das transportadoras (grupos de WhatsApp etc.).
+/// Cada linha = uma transportadora numa rota, num dia. O VIGENTE é a cotação mais recente
+/// de cada transportadora × rota; o histórico guarda todas (para ver a evolução).
+model CotacaoFrete {
+  id             String   @id @default(uuid())
+  grupo          String? // grupo de cotação de onde veio
+  transportadora String
+  origem         String
+  destino        String
+  produto        String?
+  veiculo        String? // Bitrem, Rodocaçamba, 9 eixos graneleiro...
+  valor          Decimal  @db.Decimal(14, 4)
+  unidade        String   @default("R$/t") // R$/t ou R$/sc
+  dataCotacao    String // "YYYY-MM-DD"
+  observacao     String?
+  textoOrigem    String? // trecho original da mensagem (auditoria)
+  createdAt      DateTime @default(now())
+  createdBy      String?
+
+  @@index([transportadora])
+  @@index([origem, destino])
+  @@index([dataCotacao])
+  @@map("cotacoes_frete")
+}
+
+/// Configurações simples do sistema (chave/valor). Ex.: chave da IA usada na Cotação de Fretes.
+model ConfigSistema {
+  chave     String   @id
+  valor     String
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@map("config_sistema")
+}
