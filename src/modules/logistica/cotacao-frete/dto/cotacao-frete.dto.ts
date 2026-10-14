@@ -50,7 +50,7 @@ export class InterpretarCotacoesDto {
 /** Uma cotação de frete (sugerida pela interpretação ou confirmada pelo usuário). */
 export class CotacaoFreteItemDto {
   @ApiPropertyOptional() @IsOptional() @IsString() grupo?: string;
-  @ApiProperty() @IsString() transportadora: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() transportadora?: string;
   @ApiProperty() @IsString() origem: string;
   @ApiProperty() @IsString() destino: string;
   @ApiPropertyOptional() @IsOptional() @IsString() produto?: string;
@@ -76,7 +76,7 @@ export class SalvarCotacoesLoteDto {
 export class CotacaoFreteResponseDto {
   @ApiProperty() id: string;
   @ApiPropertyOptional({ nullable: true }) grupo: string | null;
-  @ApiProperty() transportadora: string;
+  @ApiPropertyOptional({ nullable: true }) transportadora: string | null;
   @ApiProperty() origem: string;
   @ApiProperty() destino: string;
   @ApiPropertyOptional({ nullable: true }) produto: string | null;

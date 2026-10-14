@@ -1138,7 +1138,7 @@ model LancamentoFinanceiro {
 model CotacaoFrete {
   id             String   @id @default(uuid())
   grupo          String? // grupo de cotação de onde veio
-  transportadora String
+  transportadora String? // opcional: nem toda cotação diz quem ofereceu
   origem         String
   destino        String
   produto        String?

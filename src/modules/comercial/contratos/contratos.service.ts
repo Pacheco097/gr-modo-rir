@@ -101,7 +101,7 @@ export class ContratosService {
       data: {
         numeroErpMaxicon: erp,
         tipo: dto.tipo,
-        status: ContratoStatus.RASCUNHO,
+        status: ContratoStatus.EMITIDO, // não existe mais a etapa de rascunho: o contrato já nasce emitido
         boletaId: base.boletaId,
         contraparteId: base.contraparteId,
         contraparteNome: base.contraparteNome,
@@ -121,7 +121,7 @@ export class ContratosService {
         createdBy: usuario,
         updatedBy: usuario,
         historico: {
-          create: { evento: ContratoEventoTipo.CRIACAO, para: ContratoStatus.RASCUNHO, usuario },
+          create: { evento: ContratoEventoTipo.CRIACAO, para: ContratoStatus.EMITIDO, usuario },
         },
       },
     });

@@ -845,12 +845,13 @@ body, body *:not(i):not([class*="ti-"]):not(.ti){font-family:'Inter',sans-serif 
         <div style="border-bottom:1px solid var(--n100);margin-bottom:14px;display:flex;gap:6px">
           <button id="cottab-vigente" onclick="cotTab('vigente')" style="padding:9px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--green);border-bottom:2px solid var(--green)"><i class="ti ti-target" style="font-size:14px;vertical-align:-2px"></i> Vigente hoje</button>
           <button id="cottab-historico" onclick="cotTab('historico')" style="padding:9px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--n500);border-bottom:2px solid transparent"><i class="ti ti-history" style="font-size:14px;vertical-align:-2px"></i> Histórico</button>
+          <button id="cottab-evolucao" onclick="cotTab('evolucao')" style="padding:9px 16px;font-size:12px;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--n500);border-bottom:2px solid transparent"><i class="ti ti-chart-line" style="font-size:14px;vertical-align:-2px"></i> Evolução mensal</button>
         </div>
         <div id="cot-pane-vigente">
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-            <input id="cot-v-busca" type="text" placeholder="Buscar rota ou transportadora..." oninput="cotRenderVigente()" style="flex:1;min-width:220px;font-size:12px;padding:8px 10px;border:1px solid var(--n100);border-radius:8px">
+            <input id="cot-v-busca" type="text" placeholder="Buscar origem, destino, veículo ou transportadora..." oninput="cotRenderVigente()" style="flex:1;min-width:220px;font-size:12px;padding:8px 10px;border:1px solid var(--n100);border-radius:8px">
             <select id="cot-v-un" onchange="cotRenderVigente()" style="font-size:12px;padding:8px 10px;border:1px solid var(--n100);border-radius:8px"><option value="">Todas as unidades</option><option value="R$/t">R$/t</option><option value="R$/sc">R$/sc</option></select>
-            <select id="cot-v-dias" onchange="cotRenderVigente()" style="font-size:12px;padding:8px 10px;border:1px solid var(--n100);border-radius:8px"><option value="0">Qualquer data</option><option value="3">Últimos 3 dias</option><option value="7" selected>Últimos 7 dias</option><option value="15">Últimos 15 dias</option><option value="30">Últimos 30 dias</option></select>
+            <select id="cot-v-dias" onchange="cotRenderVigente()" style="font-size:12px;padding:8px 10px;border:1px solid var(--n100);border-radius:8px"><option value="0" selected>Qualquer data</option><option value="3">Últimos 3 dias</option><option value="7">Últimos 7 dias</option><option value="15">Últimos 15 dias</option><option value="30">Últimos 30 dias</option></select>
           </div>
           <div class="card" style="padding:0;overflow:hidden"><div id="cot-vigente"></div></div>
         </div>
@@ -863,6 +864,16 @@ body, body *:not(i):not([class*="ti-"]):not(.ti){font-family:'Inter',sans-serif 
             <input id="cot-h-ate" type="date" onchange="cotRenderHistorico()" style="font-size:12px;padding:7px 10px;border:1px solid var(--n100);border-radius:8px">
           </div>
           <div class="card" style="padding:0;overflow:hidden"><div id="cot-historico"></div></div>
+        </div>
+        <div id="cot-pane-evolucao" style="display:none">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <select id="cot-e-orig" onchange="cotEvolucaoOrigem()" title="Origem" style="flex:1;min-width:180px;font-size:12px;padding:8px 10px;border:1px solid var(--n100);border-radius:8px"></select>
+            <select id="cot-e-dest" onchange="cotEvolucaoRender()" title="Destino" style="flex:1;min-width:180px;font-size:12px;padding:8px 10px;border:1px solid var(--n100);border-radius:8px"></select>
+            <select id="cot-e-ano" onchange="cotEvolucaoRender()" style="font-size:12px;padding:8px 10px;border:1px solid var(--n100);border-radius:8px"></select>
+            <select id="cot-e-veic" onchange="cotEvolucaoRender()" style="font-size:12px;padding:8px 10px;border:1px solid var(--n100);border-radius:8px"></select>
+            <select id="cot-e-un" onchange="cotEvolucaoRender()" style="font-size:12px;padding:8px 10px;border:1px solid var(--n100);border-radius:8px"><option value="R$/t">R$/t</option><option value="R$/sc">R$/sc</option></select>
+          </div>
+          <div class="card" style="padding:16px 18px"><div id="cot-evolucao"></div></div>
         </div>
       </div>
 
@@ -1504,21 +1515,6 @@ body, body *:not(i):not([class*="ti-"]):not(.ti){font-family:'Inter',sans-serif 
           </div>
         </div>
 
-        <!-- RESUMO POR UNIDADE -->
-        <div class="card">
-          <div class="card-head"><div class="card-title"><i class="ti ti-building-warehouse"></i> Resumo por Unidade</div></div>
-          <div style="overflow-x:auto">
-            <table>
-              <thead><tr>
-                <th>Unidade</th><th style="text-align:right">Compra (t)</th><th style="text-align:right">Venda (t)</th>
-                <th style="text-align:right">Exposição (t)</th><th style="text-align:right">Preço Médio Compra</th>
-                <th style="text-align:right">Preço Médio Venda</th><th style="text-align:right">Saving (R$/sc)</th>
-              </tr></thead>
-              <tbody id="rg-unidade-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-
         <!-- GRÁFICOS -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
           <div class="card" style="margin-bottom:0">
@@ -1526,16 +1522,8 @@ body, body *:not(i):not([class*="ti-"]):not(.ti){font-family:'Inter',sans-serif 
             <div id="rg-chart-produto" style="padding:8px 12px;height:210px"></div>
           </div>
           <div class="card" style="margin-bottom:0">
-            <div class="card-head"><div class="card-title"><i class="ti ti-chart-bar"></i> Volume por Unidade (t)</div><span style="font-size:10px;color:var(--n500)">NMV × Juína</span></div>
-            <div id="rg-chart-unidade" style="padding:8px 12px;height:210px"></div>
-          </div>
-          <div class="card" style="margin-bottom:0">
             <div class="card-head"><div class="card-title"><i class="ti ti-chart-line"></i> Evolução Mensal (t)</div><span style="font-size:10px;color:var(--n500)">Compra · Venda · Resultado</span></div>
             <div id="rg-chart-mensal" style="padding:8px 12px;height:210px"></div>
-          </div>
-          <div class="card" style="margin-bottom:0">
-            <div class="card-head"><div class="card-title"><i class="ti ti-chart-bar" style="transform:rotate(90deg)"></i> Exposição por Produto (t)</div><span style="font-size:10px;color:var(--n500)">Compra − Venda</span></div>
-            <div id="rg-chart-exposicao" style="padding:8px 12px;height:210px"></div>
           </div>
         </div>
 
@@ -1564,59 +1552,23 @@ body, body *:not(i):not([class*="ti-"]):not(.ti){font-family:'Inter',sans-serif 
           </div>
         </div>
 
-        <!-- FILTROS POR CAMPO (mesmos campos da planilha) -->
-        <div class="card">
-          <div class="card-head">
-            <div class="card-title"><i class="ti ti-filter" style="color:var(--gold)"></i> Filtros por Campo (planilha)</div>
-            <button class="btn sm" onclick="rgLimparFiltrosCampo()"><i class="ti ti-filter-off" style="font-size:11px"></i> Limpar filtros</button>
+        <!-- CONTRATOS DE COMPRA E VENDA (painel de consulta) -->
+        <div class="card" id="rg-painel">
+          <div class="card-head" style="flex-wrap:wrap;gap:8px">
+            <div class="card-title"><i class="ti ti-files" style="color:var(--green)"></i> Contratos de Compra e Venda</div>
+            <span id="rg-p-resumo" style="font-size:11px;color:var(--n500);margin-left:auto"></span>
           </div>
-          <div style="padding:12px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-            <div class="field">
-              <label style="display:flex;align-items:center;gap:5px"><i class="ti ti-building-store" style="color:var(--blue);font-size:12px"></i> Comprador (Cliente)</label>
-              <select id="rg-f-comprador" onchange="rgRender()"><option value="">Todos</option></select>
-            </div>
-            <div class="field">
-              <label style="display:flex;align-items:center;gap:5px"><i class="ti ti-tractor" style="color:var(--green);font-size:12px"></i> Vendedor / Produtor</label>
-              <select id="rg-f-vendedor" onchange="rgRender()"><option value="">Todos</option></select>
-            </div>
-            <div class="field">
-              <label style="display:flex;align-items:center;gap:5px"><i class="ti ti-cash" style="color:var(--gold);font-size:12px"></i> Pagamento</label>
-              <select id="rg-f-pagamento" onchange="rgRender()"><option value="">Todos</option></select>
-            </div>
-            <div class="field">
-              <label style="display:flex;align-items:center;gap:5px"><i class="ti ti-user-dollar" style="color:var(--mid);font-size:12px"></i> Corretor</label>
-              <select id="rg-f-corretor" onchange="rgRender()"><option value="">Todos</option></select>
-            </div>
-            <div class="field">
-              <label style="display:flex;align-items:center;gap:5px"><i class="ti ti-map-pin" style="color:var(--green);font-size:12px"></i> Cidade</label>
-              <select id="rg-f-cidade" onchange="rgRender()"><option value="">Todas</option></select>
-            </div>
-            <div class="field">
-              <label style="display:flex;align-items:center;gap:5px"><i class="ti ti-file-invoice" style="color:var(--blue);font-size:12px"></i> Modalidade</label>
-              <select id="rg-f-modalidade" onchange="rgRender()"><option value="">Todas</option></select>
-            </div>
-            <div class="field">
-              <label style="display:flex;align-items:center;gap:5px"><i class="ti ti-progress-check" style="color:var(--yellow);font-size:12px"></i> Status</label>
-              <select id="rg-f-status" onchange="rgRender()"><option value="">Todos</option></select>
-            </div>
-            <div class="field">
-              <label style="display:flex;align-items:center;gap:5px"><i class="ti ti-plant" style="color:var(--green);font-size:12px"></i> Safra</label>
-              <select id="rg-f-safra" onchange="rgRender()"><option value="">Todas</option></select>
-            </div>
+          <div style="padding:12px 16px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;border-bottom:1px solid var(--n100)">
+            <div class="field" style="min-width:150px"><label>Produto</label><select id="rg-p-produto" onchange="rgPainelFiltro()"><option value="Todos">Todos</option></select></div>
+            <div class="field" style="min-width:110px"><label>Ano</label><select id="rg-p-ano" onchange="rgPainelFiltro()"><option value="Todos">Todos</option></select></div>
+            <div class="field" style="min-width:150px"><label>Tipo de contrato</label><select id="rg-p-tipo" onchange="rgPainelFiltro()"><option value="Ambos">Compra e venda</option><option value="Compra">Somente compra</option><option value="Venda">Somente venda</option></select></div>
+            <div class="field" style="flex:1;min-width:240px"><label>Pesquisar</label><input type="text" id="rg-p-busca" placeholder="Contrato, contraparte, cidade, corretor, status..." oninput="rgRenderPainel()" style="padding:9px 12px;border:1.5px solid var(--n300);border-radius:8px;font-size:12px;outline:none"></div>
+            <button class="btn sm" onclick="rgPainelLimpar()"><i class="ti ti-filter-off" style="font-size:12px"></i> Limpar</button>
           </div>
-        </div>
-
-        <!-- TABELA GERENCIAL DETALHADA -->
-        <div class="card">
-          <div class="card-head">
-            <div class="card-title"><i class="ti ti-table"></i> Tabela Gerencial Detalhada</div>
-            <input type="text" id="rg-search" placeholder="Pesquisar..." oninput="rgRenderTabela()"
-              style="padding:5px 10px;border:1.5px solid var(--n300);border-radius:7px;font-size:11px;outline:none;width:200px">
-          </div>
-          <div style="overflow-x:auto">
-            <table id="rg-tabela">
-              <thead><tr id="rg-tabela-head"></tr></thead>
-              <tbody id="rg-tabela-tbody"></tbody>
+          <div style="overflow:auto;max-height:560px">
+            <table style="width:100%;border-collapse:collapse;font-size:12px">
+              <thead id="rg-p-head" style="position:sticky;top:0;background:#fff;z-index:1"></thead>
+              <tbody id="rg-p-body"></tbody>
             </table>
           </div>
         </div>
@@ -12539,6 +12491,7 @@ function rgRender() {
   rgRenderCharts(rows);
   rgRenderRankings(rows);
   rgRenderTabela();
+  if (typeof rgRenderPainel === 'function') rgRenderPainel();
   const c = document.getElementById('rg-origem-count');
   if (c) c.textContent = RG_DATA.length + ' registros · ' + rows.length + ' no filtro';
 }
@@ -12709,14 +12662,6 @@ function rgRenderCharts(rows) {
     {name:'Compra',color:RG_COR.compra,values:compraP},
     {name:'Venda', color:RG_COR.venda, values:vendaP}
   ]);
-  // Volume por Unidade
-  const unis = ['Nova Monte Verde','Juína'];
-  const compraU = unis.map(u=>scToTon(rows.filter(r=>r.unidade===u&&r.tipo==='Compra').reduce((a,r)=>a+r.quantidade,0)));
-  const vendaU  = unis.map(u=>scToTon(rows.filter(r=>r.unidade===u&&r.tipo==='Venda').reduce((a,r)=>a+r.quantidade,0)));
-  document.getElementById('rg-chart-unidade').innerHTML = rgGroupedBars(['NMV','Juína'], [
-    {name:'Compra',color:RG_COR.compra,values:compraU},
-    {name:'Venda', color:RG_COR.venda, values:vendaU}
-  ]);
   // Evolução Mensal
   const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const cM=[],vM=[],rM=[];
@@ -12730,9 +12675,7 @@ function rgRenderCharts(rows) {
     {name:'Venda', color:RG_COR.venda, values:vM},
     {name:'Resultado',color:RG_COR.resultado,values:rM}
   ]);
-  // Exposição por Produto (Compra - Venda)
-  const expo = prods.map((p,i)=>({label:p, value:compraP[i]-vendaP[i], color: RG_COR.exposPos}));
-  document.getElementById('rg-chart-exposicao').innerHTML = rgHBars(expo);
+
 }
 
 // ── Rankings / indicadores adicionais ───────────────────────────────
@@ -12787,6 +12730,94 @@ const RG_COLS = [
   {k:'safra',      t:'Safra'},
   {k:'corretor',   t:'Corretor'}
 ];
+
+// ── Painel "Contratos de Compra e Venda": todos os contratos, com filtros e pesquisa ─────────────
+let rgPSortCol = 'dataContrato', rgPSortDir = -1;
+const RG_PCOLS = [
+  {k:'contrato',   t:'Contrato'},
+  {k:'tipo',       t:'Tipo'},
+  {k:'produto',    t:'Produto'},
+  {k:'contraparte',t:'Contraparte'},
+  {k:'cidade',     t:'Cidade'},
+  {k:'ton',        t:'Qtd (t)',   num:true, dec:2},
+  {k:'saldoTon',   t:'Saldo (t)', num:true, dec:2},
+  {k:'preco',      t:'Preço (R$/sc)', num:true, money:true},
+  {k:'valorFinal', t:'Valor total',  num:true, money:true},
+  {k:'dataContrato',t:'Início'},
+  {k:'dataEntrega',t:'Vencimento'},
+  {k:'status',     t:'Status'},
+  {k:'corretor',   t:'Corretor'},
+  {k:'modalidade', t:'Modalidade', opc:true},
+  {k:'pagamento',  t:'Pagamento',  opc:true},
+  {k:'safra',      t:'Safra',      opc:true}
+];
+function rgPSort(k) { if (rgPSortCol === k) rgPSortDir *= -1; else { rgPSortCol = k; rgPSortDir = 1; } rgRenderPainel(); }
+function rgPDados() {
+  return rgFiltrar().map(r => Object.assign({}, r, {
+    contraparte: r.comprador || r.vendedor || '',
+    ton: scToTon(r.quantidade),
+    saldoTon: scToTon(r.saldo)
+  }));
+}
+// Mantém os selects do painel (e os do topo) com as opções reais dos dados, sem perder a seleção
+function rgPainelOpcoes() {
+  const preenche = (ids, valores, padrao) => ids.forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    const atual = el.value;
+    el.innerHTML = '<option value="' + padrao + '">' + (padrao === 'Todos' ? 'Todos' : padrao) + '</option>' + valores.map(v => '<option>' + rgEsc(String(v)) + '</option>').join('');
+    if (atual && (atual === padrao || valores.map(String).includes(atual))) el.value = atual;
+  });
+  const prods = [...new Set(RG_DATA.map(r => r.produto).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const anos = [...new Set(RG_DATA.map(r => r.ano).filter(Boolean).concat([2025, 2026, 2027]))].sort();
+  preenche(['rg-f-produto', 'rg-p-produto'], prods, 'Todos');
+  preenche(['rg-f-ano', 'rg-p-ano'], anos, 'Todos');
+}
+function rgPainelFiltro() {
+  const par = [['rg-p-produto', 'rg-f-produto'], ['rg-p-ano', 'rg-f-ano'], ['rg-p-tipo', 'rg-f-tipo']];
+  par.forEach(([p, g]) => { const a = document.getElementById(p), b = document.getElementById(g); if (a && b) b.value = a.value; });
+  rgRender();
+}
+function rgPainelLimpar() {
+  [['rg-f-produto', 'Todos'], ['rg-f-ano', 'Todos'], ['rg-f-tipo', 'Ambos'], ['rg-f-unidade', 'Todas']].forEach(([id, v]) => { const e = document.getElementById(id); if (e) e.value = v; });
+  const b = document.getElementById('rg-p-busca'); if (b) b.value = '';
+  rgRender();
+}
+function rgRenderPainel() {
+  const head = document.getElementById('rg-p-head'), body = document.getElementById('rg-p-body');
+  if (!head || !body) return;
+  rgPainelOpcoes();
+  // espelha os filtros globais nos do painel (ficam sempre iguais)
+  [['rg-p-produto', 'rg-f-produto'], ['rg-p-ano', 'rg-f-ano'], ['rg-p-tipo', 'rg-f-tipo']].forEach(([p, g]) => {
+    const a = document.getElementById(p), b = document.getElementById(g); if (a && b && a.value !== b.value) a.value = b.value;
+  });
+  let rows = rgPDados();
+  const q = (document.getElementById('rg-p-busca')?.value || '').trim().toLowerCase();
+  const cols = RG_PCOLS.filter(c => !c.opc || rows.some(r => r[c.k]));
+  if (q) rows = rows.filter(r => cols.some(c => String(r[c.k] ?? '').toLowerCase().includes(q)));
+  rows.sort((a, b) => {
+    const x = a[rgPSortCol], y = b[rgPSortCol];
+    if (typeof x === 'number' && typeof y === 'number') return (x - y) * rgPSortDir;
+    return String(x ?? '').localeCompare(String(y ?? ''), 'pt-BR') * rgPSortDir;
+  });
+  head.innerHTML = '<tr style="color:var(--n500);font-size:9px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--n100)">' + cols.map(c => {
+    const seta = rgPSortCol === c.k ? (rgPSortDir > 0 ? ' ▲' : ' ▼') : '';
+    return '<th onclick="rgPSort(\'' + c.k + '\')" style="cursor:pointer;white-space:nowrap;padding:9px 12px;font-weight:700;text-align:' + (c.num ? 'right' : 'left') + '">' + c.t + seta + '</th>';
+  }).join('') + '</tr>';
+  const dbrp = v => v ? String(v).split('-').reverse().join('/') : '—';
+  const totTon = rows.reduce((s2, r) => s2 + (r.ton || 0), 0), totVl = rows.reduce((s2, r) => s2 + (r.valorFinal || 0), 0);
+  const resumo = document.getElementById('rg-p-resumo');
+  if (resumo) resumo.textContent = rows.length + ' contrato(s) · ' + rgN(totTon, 2) + ' t · ' + rgRM(totVl);
+  if (!rows.length) { body.innerHTML = '<tr><td colspan="' + cols.length + '" style="text-align:center;color:var(--n500);padding:30px;font-size:12px">Nenhum contrato com esses filtros.</td></tr>'; return; }
+  body.innerHTML = rows.map(r => '<tr style="border-top:1px solid var(--n50)">' + cols.map(c => {
+    let v = r[c.k];
+    if (c.k === 'tipo') return '<td style="padding:8px 12px"><span class="chip ' + (v === 'Compra' ? 'c-blue' : 'c-green') + '">' + v + '</span></td>';
+    if (c.k === 'contrato') return '<td style="padding:8px 12px"><span class="mono" style="font-size:11px;font-weight:700">' + rgEsc(String(v || '—')) + '</span></td>';
+    if (c.k === 'dataContrato' || c.k === 'dataEntrega') return '<td style="padding:8px 12px;white-space:nowrap">' + dbrp(v) + '</td>';
+    if (c.money) v = rgR$(v); else if (c.num) v = rgN(v, c.dec || 0);
+    return '<td style="padding:8px 12px;' + (c.num ? 'text-align:right;white-space:nowrap;font-family:\'DM Mono\',monospace;' : '') + '">' + (v === '' || v == null ? '<span style="color:var(--n300)">—</span>' : rgEsc(String(v))) + '</td>';
+  }).join('') + '</tr>').join('');
+}
+
 function rgSort(k) { if(rgSortCol===k) rgSortDir*=-1; else { rgSortCol=k; rgSortDir=1; } rgRenderTabela(); }
 function rgRenderTabela() {
   const head=document.getElementById('rg-tabela-head'); const tb=document.getElementById('rg-tabela-tbody');
@@ -20470,12 +20501,14 @@ if (typeof dashRender === 'function') dashRender();
   var INP = 'font-size:12px;padding:7px 9px;border:1px solid var(--n100);border-radius:8px;box-sizing:border-box';
 
   window.cotTab = function (t) {
-    ['vigente', 'historico'].forEach(function (k) {
+    ['vigente', 'historico', 'evolucao'].forEach(function (k) {
       var b = document.getElementById('cottab-' + k), p = document.getElementById('cot-pane-' + k);
       if (b) { b.style.color = k === t ? 'var(--green)' : 'var(--n500)'; b.style.borderBottom = '2px solid ' + (k === t ? 'var(--green)' : 'transparent'); }
       if (p) p.style.display = k === t ? '' : 'none';
     });
+    if (t === 'vigente') window.cotInit();
     if (t === 'historico') window.cotRenderHistorico();
+    if (t === 'evolucao') window.cotEvolucaoInit();
   };
 
   async function jget(path) { var r = await window.apiFetch(path); return r.ok ? r.json() : []; }
@@ -20490,51 +20523,84 @@ if (typeof dashRender === 'function') dashRender();
     return '<div style="flex:1;min-width:150px;background:#fff;border:0.5px solid var(--n100);border-radius:10px;padding:12px 14px"><div style="font-size:9px;color:var(--n500);font-weight:700;text-transform:uppercase;letter-spacing:.3px">' + rot + '</div><div style="font-size:17px;font-weight:800;color:' + (cor || 'var(--dark)') + ';margin-top:3px">' + val + '</div></div>';
   }
 
-  // ── VIGENTE: por rota, transportadoras do menor ao maior valor ──
+  // ── VIGENTE: uma linha por rota (origem → destino · veículo), agrupada por origem ──
+  // O vigente de cada rota é SEMPRE a cotação mais recente; ao salvar um frete novo da mesma rota, ele assume o lugar.
+  var _colapsadas = {}, _abertas = {}, _linhasVig = [];
+  window.cotToggleOrigem = function (o) { _colapsadas[o] = !_colapsadas[o]; window.cotRenderVigente(); };
+  window.cotToggleRota = function (k) { _abertas[k] = !_abertas[k]; window.cotRenderVigente(); };
+  window.cotTodasOrigens = function (recolher) { _vig.forEach(function (c) { _colapsadas[c.origem] = !!recolher; }); window.cotRenderVigente(); };
+  function varTxt(c) {
+    if (c.variacaoPct == null) return '<span style="color:var(--n300)">—</span>';
+    var cor = c.variacaoPct > 0 ? '#C0392B' : (c.variacaoPct < 0 ? 'var(--green)' : 'var(--n500)');
+    return '<span style="color:' + cor + ';font-weight:700" title="' + (c.valorAnterior != null ? 'anterior ' + brl(c.valorAnterior) : '') + '">' + (c.variacaoPct > 0 ? '▲ ' : (c.variacaoPct < 0 ? '▼ ' : '')) + Math.abs(c.variacaoPct).toFixed(1).replace('.', ',') + '%</span>';
+  }
+  function idadeTxt(dias) { return dias === 0 ? 'hoje' : (dias === 1 ? 'ontem' : 'há ' + dias + 'd'); }
+
   window.cotRenderVigente = function () {
     var host = document.getElementById('cot-vigente'); if (!host) return;
     var q = norm((document.getElementById('cot-v-busca') || {}).value);
     var un = (document.getElementById('cot-v-un') || {}).value || '';
     var maxDias = Number((document.getElementById('cot-v-dias') || {}).value) || 0;
 
-    var rotas = {}; var transps = {};
-    _vig.forEach(function (c) { transps[norm(c.transportadora)] = 1; });
-    var desat = _vig.filter(function (c) { return c.diasDesde > 7; }).length;
-    var kp = document.getElementById('cot-kpis');
-    if (kp) {
-      var nRotas = {}; _vig.forEach(function (c) { nRotas[norm(c.origem) + '>' + norm(c.destino)] = 1; });
-      kp.innerHTML = kpi('Rotas monitoradas', Object.keys(nRotas).length) + kpi('Transportadoras', Object.keys(transps).length) + kpi('Cotações vigentes', _vig.length) + kpi('Desatualizadas (> 7 dias)', desat, desat ? '#B45309' : 'var(--dark)');
-    }
-
-    var lista = _vig.filter(function (c) {
-      if (un && c.unidade !== un) return false;
-      if (maxDias && c.diasDesde > maxDias) return false;
-      if (q && (norm(c.origem) + ' ' + norm(c.destino) + ' ' + norm(c.transportadora)).indexOf(q) < 0) return false;
-      return true;
+    // KPIs
+    var rotasSet = {}, origSet = {}, atual = 0, velhas = 0;
+    var porRota = {};
+    _vig.forEach(function (c) {
+      var rk = c.origem + '|' + c.destino + '|' + (c.veiculo || '') + '|' + c.unidade;
+      (porRota[rk] = porRota[rk] || []).push(c);
     });
-    lista.forEach(function (c) { var k = c.origem + ' → ' + c.destino + (c.veiculo ? ' · ' + c.veiculo : '') + '||' + c.unidade; (rotas[k] = rotas[k] || []).push(c); });
-    var chaves = Object.keys(rotas).sort();
-    if (!chaves.length) {
-      host.innerHTML = '<div style="padding:34px;text-align:center;color:var(--n500);font-size:12px">' + (_vig.length ? 'Nenhuma cotação com esses filtros.' : 'Nenhuma cotação ainda. Clique em <b>Colar cotações</b>, cole a conversa de um grupo e confirme.') + '</div>';
+    Object.keys(porRota).forEach(function (rk) {
+      var a = porRota[rk], dias = Math.min.apply(null, a.map(function (x) { return x.diasDesde; }));
+      rotasSet[a[0].origem + '>' + a[0].destino] = 1; origSet[a[0].origem] = 1;
+      if (dias > 7) velhas++; else atual++;
+    });
+    var kp = document.getElementById('cot-kpis');
+    if (kp) kp.innerHTML = kpi('Rotas monitoradas', Object.keys(rotasSet).length) + kpi('Origens', Object.keys(origSet).length) + kpi('Atualizadas (até 7 dias)', atual, 'var(--green)') + kpi('Desatualizadas (> 7 dias)', velhas, velhas ? '#B45309' : 'var(--dark)');
+
+    // linhas filtradas (1 por rota+veículo+unidade)
+    var linhas = Object.keys(porRota).map(function (rk) {
+      var todas = porRota[rk], fresca = Math.min.apply(null, todas.map(function (x) { return x.diasDesde; }));
+      // vigente = cotações recentes da rota (até 14 dias mais velhas que a mais nova); as antigas ficam só no histórico
+      var a = todas.filter(function (x) { return x.diasDesde - fresca <= 14; }).sort(function (x, y) { return x.valor - y.valor; });
+      var dias = fresca;
+      var recente = a.slice().sort(function (x, y) { return x.diasDesde - y.diasDesde; })[0];
+      return { key: rk, origem: a[0].origem, destino: a[0].destino, veiculo: a[0].veiculo || '', unidade: a[0].unidade, itens: a, menor: a[0], recente: recente, dias: dias };
+    }).filter(function (l) {
+      if (un && l.unidade !== un) return false;
+      if (maxDias && l.dias > maxDias) return false;
+      if (q && (norm(l.origem) + ' ' + norm(l.destino) + ' ' + norm(l.veiculo) + ' ' + l.itens.map(function (x) { return norm(x.transportadora); }).join(' ')).indexOf(q) < 0) return false;
+      return true;
+    }).sort(function (a, b) { return a.origem.localeCompare(b.origem) || a.destino.localeCompare(b.destino) || a.veiculo.localeCompare(b.veiculo); });
+    _linhasVig = linhas;
+
+    if (!linhas.length) {
+      host.innerHTML = '<div style="padding:34px;text-align:center;color:var(--n500);font-size:12px">' + (_vig.length ? 'Nenhuma rota com esses filtros.' : 'Nenhuma cotação ainda. Clique em <b>Colar cotações</b>, cole a conversa de um grupo e confirme.') + '</div>';
       return;
     }
-    var th = function (t, al) { return '<th style="text-align:' + (al || 'left') + ';padding:7px 10px">' + t + '</th>'; };
-    var html = '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--dark);color:#fff;font-size:9px;text-transform:uppercase">' + th('Rota / Transportadora') + th('Frete', 'right') + th('Variação', 'center') + th('Cotado em', 'center') + th('Grupo') + th('', 'center') + '</tr></thead><tbody>';
-    chaves.forEach(function (k) {
-      var arr = rotas[k].slice().sort(function (a, b) { return a.valor - b.valor; });
-      var nomeRota = k.split('||')[0], unid = k.split('||')[1];
-      html += '<tr style="background:var(--n50);border-top:1px solid var(--n100)"><td colspan="5" style="padding:8px 10px;font-weight:800;color:var(--dark)">' + esc(nomeRota) + ' <span style="font-weight:500;color:var(--n500);font-size:10px">· ' + unid + ' · ' + arr.length + ' transportadora(s)</span></td>'
-        + '<td style="text-align:center"><button class="btn sm" onclick="cotVerRota(\'' + esc(arr[0].origem).replace(/'/g, "\\'") + '\',\'' + esc(arr[0].destino).replace(/'/g, "\\'") + '\')" style="font-size:10px" title="Histórico da rota"><i class="ti ti-history"></i></button></td></tr>';
-      arr.forEach(function (c, i) {
-        var melhor = i === 0 && arr.length > 1;
-        var vcor = c.variacaoPct == null ? 'var(--n400)' : (c.variacaoPct > 0 ? '#C0392B' : (c.variacaoPct < 0 ? 'var(--green)' : 'var(--n500)'));
-        var vtxt = c.variacaoPct == null ? '—' : ((c.variacaoPct > 0 ? '▲ ' : (c.variacaoPct < 0 ? '▼ ' : '')) + Math.abs(c.variacaoPct).toFixed(1).replace('.', ',') + '%');
-        var velho = c.diasDesde > 7;
-        html += '<tr style="border-top:1px solid var(--n50)"><td style="padding:7px 10px 7px 22px;font-weight:600">' + esc(c.transportadora) + (c.produto ? ' <span style="font-weight:400;font-size:10px;color:var(--n500)">· ' + esc(c.produto) + '</span>' : '') + (melhor ? ' <span class="chip c-green" style="font-size:8px">melhor</span>' : '') + '</td>'
-          + '<td style="text-align:right;padding:7px 10px;font-weight:800;font-family:\'DM Mono\',monospace;color:' + (melhor ? 'var(--green)' : 'var(--dark)') + '">' + brl(c.valor) + '</td>'
-          + '<td style="text-align:center;font-weight:700;color:' + vcor + '" title="' + (c.valorAnterior != null ? 'anterior ' + brl(c.valorAnterior) : '') + '">' + vtxt + '</td>'
-          + '<td style="text-align:center;white-space:nowrap;color:' + (velho ? '#B45309' : 'var(--n700)') + '">' + dbr(c.dataCotacao) + ' <span style="font-size:9px">(' + (c.diasDesde === 0 ? 'hoje' : c.diasDesde + 'd') + ')</span></td>'
-          + '<td style="color:var(--n500);font-size:11px">' + esc(c.grupo || '—') + '</td><td></td></tr>';
+    var porOrigem = {}; linhas.forEach(function (l) { (porOrigem[l.origem] = porOrigem[l.origem] || []).push(l); });
+    var origens = Object.keys(porOrigem).sort(function (a, b) { return a.localeCompare(b); });
+    var buscando = !!q;
+    var th = function (t, al, w) { return '<th style="text-align:' + (al || 'left') + ';padding:8px 12px;font-weight:700' + (w ? ';width:' + w : '') + '">' + t + '</th>'; };
+    var html = '<div style="display:flex;justify-content:flex-end;gap:6px;padding:8px 12px;border-bottom:1px solid var(--n100)"><button class="btn sm" onclick="cotTodasOrigens(false)" style="font-size:10px">Expandir tudo</button><button class="btn sm" onclick="cotTodasOrigens(true)" style="font-size:10px">Recolher tudo</button></div>'
+      + '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="color:var(--n500);font-size:9px;text-transform:uppercase;letter-spacing:.4px;background:#fff">' + th('Destino') + th('Veículo') + th('Frete vigente', 'right', '150px') + th('Variação', 'center', '100px') + th('Cotado em', 'center', '140px') + th('', 'center', '90px') + '</tr></thead><tbody>';
+    origens.forEach(function (o) {
+      var rs = porOrigem[o], fechada = !buscando && _colapsadas[o];
+      html += '<tr onclick="cotToggleOrigem(\'' + esc(o).replace(/'/g, "\\'") + '\')" style="background:var(--n50);cursor:pointer;border-top:1px solid var(--n100)"><td colspan="6" style="padding:9px 12px;font-weight:800;color:var(--dark)"><i class="ti ' + (fechada ? 'ti-chevron-right' : 'ti-chevron-down') + '" style="font-size:13px;color:var(--n500);margin-right:4px"></i>' + esc(o) + ' <span style="font-weight:500;color:var(--n500);font-size:10px">· ' + rs.length + ' rota' + (rs.length > 1 ? 's' : '') + '</span></td></tr>';
+      if (fechada) return;
+      rs.forEach(function (l) {
+        var m = l.menor, varios = l.itens.length > 1, aberta = !!_abertas[l.key], velho = l.dias > 7;
+        html += '<tr style="border-top:1px solid var(--n50)"><td style="padding:8px 12px 8px 30px;font-weight:600;color:var(--dark)">' + esc(l.destino) + '</td>'
+          + '<td style="padding:8px 12px;color:var(--n700)">' + (l.veiculo ? esc(l.veiculo) : '<span style="color:var(--n300)">—</span>') + '</td>'
+          + '<td style="padding:8px 12px;text-align:right;white-space:nowrap"><span style="font-weight:800;font-family:\'DM Mono\',monospace;font-size:13px">' + brl(m.valor) + '</span> <span style="font-size:9px;color:var(--n500)">' + esc(l.unidade.replace('R$', '')) + '</span>' + (varios ? '<div style="font-size:9px;color:var(--n500)">menor de ' + l.itens.length + ' cotações</div>' : '') + '</td>'
+          + '<td style="padding:8px 12px;text-align:center">' + varTxt(m) + '</td>'
+          + '<td style="padding:8px 12px;text-align:center;white-space:nowrap;color:' + (velho ? '#B45309' : 'var(--n700)') + '">' + dbr(l.recente.dataCotacao) + ' <span style="font-size:9px">(' + idadeTxt(l.dias) + ')</span></td>'
+          + '<td style="padding:8px 12px;text-align:center;white-space:nowrap">' + (varios ? '<button class="btn sm" onclick="cotToggleRota(\'' + esc(l.key).replace(/'/g, "\\'") + '\')" style="font-size:10px" title="Ver cotações"><i class="ti ' + (aberta ? 'ti-chevron-up' : 'ti-chevron-down') + '"></i></button> ' : '')
+          + '<button class="btn sm" onclick="cotVerRota(\'' + esc(l.origem).replace(/'/g, "\\'") + '\',\'' + esc(l.destino).replace(/'/g, "\\'") + '\')" style="font-size:10px" title="Histórico da rota"><i class="ti ti-history"></i></button></td></tr>';
+        if (varios && aberta) {
+          l.itens.forEach(function (c) {
+            html += '<tr style="background:#FAFBFA"><td colspan="2" style="padding:5px 12px 5px 46px;font-size:11px;color:var(--n700)">' + (c.transportadora ? esc(c.transportadora) : 'sem transportadora') + (c.grupo ? ' <span style="color:var(--n400)">· ' + esc(c.grupo) + '</span>' : '') + '</td><td style="padding:5px 12px;text-align:right;font-family:\'DM Mono\',monospace;font-size:11px">' + brl(c.valor) + '</td><td style="text-align:center;font-size:11px">' + varTxt(c) + '</td><td style="text-align:center;font-size:11px;color:var(--n500)">' + dbr(c.dataCotacao) + '</td><td></td></tr>';
+          });
+        }
       });
     });
     host.innerHTML = html + '</tbody></table>';
@@ -20562,7 +20628,7 @@ if (typeof dashRender === 'function') dashRender();
       + linhas.map(function (l) {
         var c = l.c, v = l.v;
         var vcor = v == null ? 'var(--n400)' : (v > 0 ? '#C0392B' : (v < 0 ? 'var(--green)' : 'var(--n500)'));
-        return '<tr style="border-top:1px solid var(--n50)"><td style="padding:6px 10px;white-space:nowrap">' + dbr(c.dataCotacao) + '</td><td style="font-weight:600">' + esc(c.transportadora) + '</td><td>' + esc(c.origem) + '</td><td>' + esc(c.destino) + '</td><td style="color:var(--n700);font-size:11px">' + esc(c.veiculo || '—') + '</td>'
+        return '<tr style="border-top:1px solid var(--n50)"><td style="padding:6px 10px;white-space:nowrap">' + dbr(c.dataCotacao) + '</td><td style="font-weight:600">' + esc(c.transportadora || '—') + '</td><td>' + esc(c.origem) + '</td><td>' + esc(c.destino) + '</td><td style="color:var(--n700);font-size:11px">' + esc(c.veiculo || '—') + '</td>'
           + '<td style="text-align:right;font-weight:700;font-family:\'DM Mono\',monospace;white-space:nowrap">' + brl(c.valor) + ' <span style="font-size:9px;color:var(--n500)">' + esc(c.unidade.replace('R$', '')) + '</span></td>'
           + '<td style="text-align:center;font-weight:700;color:' + vcor + '">' + (v == null ? '—' : ((v > 0 ? '▲ ' : (v < 0 ? '▼ ' : '')) + Math.abs(v).toFixed(1).replace('.', ',') + '%')) + '</td>'
           + '<td style="color:var(--n500);font-size:11px">' + esc(c.grupo || '—') + '</td>'
@@ -20601,7 +20667,7 @@ if (typeof dashRender === 'function') dashRender();
     shell('<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><i class="ti ti-clipboard-text" style="color:var(--green);font-size:20px"></i><div style="font-size:15px;font-weight:800;color:var(--dark)">Colar cotações</div></div>'
       + '<div style="font-size:11px;color:var(--n500);margin-bottom:14px">Copie a conversa do grupo (do WhatsApp) e cole abaixo. Mensagens que não são cotação são ignoradas. Você confere antes de salvar.</div>'
       + '<div style="display:flex;gap:10px;margin-bottom:10px"><div style="flex:2"><label style="font-size:10px;font-weight:700;color:var(--n700);text-transform:uppercase">Grupo de cotação</label><input id="cot-grupo" list="cot-grupos" type="text" placeholder="ex.: Fretes MT - Soja" style="width:100%;margin-top:4px;' + INP + '"><datalist id="cot-grupos">' + Object.keys(grupos).map(function (g) { return '<option value="' + esc(g) + '">'; }).join('') + '</datalist></div>'
-      + '<div style="flex:2"><label style="font-size:10px;font-weight:700;color:var(--n700);text-transform:uppercase">Transportadora (se o texto não disser)</label><input id="cot-transp" type="text" placeholder="ex.: Movemos Transportes" style="width:100%;margin-top:4px;' + INP + '"></div>'
+      + '<div style="flex:2"><label style="font-size:10px;font-weight:700;color:var(--n700);text-transform:uppercase">Transportadora (opcional)</label><input id="cot-transp" type="text" placeholder="ex.: Movemos Transportes" style="width:100%;margin-top:4px;' + INP + '"></div>'
       + '<div style="flex:1"><label style="font-size:10px;font-weight:700;color:var(--n700);text-transform:uppercase">Data (se a msg não tiver)</label><input id="cot-datapadrao" type="date" value="' + hoje() + '" style="width:100%;margin-top:4px;' + INP + '"></div></div>'
       + '<textarea id="cot-texto" placeholder="Cole o texto aqui (ou cole/anexe imagens abaixo)..." style="width:100%;height:150px;' + INP + ';font-family:inherit;resize:vertical"></textarea>'
       + '<div id="cot-img-zona" ondragover="event.preventDefault()" ondrop="cotDropImg(event)" style="margin-top:8px;border:1.5px dashed var(--n200);border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--n500)"><button class="btn sm" type="button" onclick="document.getElementById(\'cot-file\').click()"><i class="ti ti-photo-plus"></i> Anexar imagens</button><input id="cot-file" type="file" accept="image/*" multiple style="display:none" onchange="cotAddFiles(this.files);this.value=\'\'"><span>ou cole (Ctrl+V) / arraste prints e cartazes aqui — a IA lê tabelas e cartazes</span><div id="cot-thumbs" style="display:flex;gap:6px;flex-wrap:wrap;width:100%"></div></div>'
@@ -20714,7 +20780,7 @@ if (typeof dashRender === 'function') dashRender();
     box.innerHTML = '<div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between"><div style="font-size:12px;font-weight:800;color:var(--dark)">Conferir cotações <span style="font-weight:500;color:var(--n500)">· ' + _sug.length + ' encontrada(s) · ' + (j.fonte === 'ia' ? 'interpretado por IA' : 'leitura gratuita — confira') + '</span></div></div>' + av
       + '<div style="max-height:34vh;overflow:auto;margin-top:8px;border:1px solid var(--n100);border-radius:10px"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--n50);font-size:9px;text-transform:uppercase;color:var(--n700)"><th style="padding:6px 8px;text-align:left">Transportadora</th><th style="text-align:left">Origem</th><th style="text-align:left">Destino</th><th style="text-align:left">Veículo</th><th style="text-align:right">Valor</th><th>Un.</th><th>Data</th><th></th></tr></thead><tbody>'
       + _sug.map(function (c, i) {
-        return '<tr id="cot-sug-' + i + '" style="border-top:1px solid var(--n50)"><td style="padding:4px 6px">' + cel(i, 'transportadora', '130px') + '</td><td style="padding:4px 3px">' + cel(i, 'origem', '120px') + '</td><td style="padding:4px 3px">' + cel(i, 'destino', '120px') + '</td><td style="padding:4px 3px">' + cel(i, 'veiculo', '100px') + '</td>'
+        return '<tr id="cot-sug-' + i + '" style="border-top:1px solid var(--n50)"><td style="padding:4px 6px">' + cel(i, 'transportadora', '130px').replace('type="text"', 'type="text" placeholder="(opcional)"') + '</td><td style="padding:4px 3px">' + cel(i, 'origem', '120px') + '</td><td style="padding:4px 3px">' + cel(i, 'destino', '120px') + '</td><td style="padding:4px 3px">' + cel(i, 'veiculo', '100px') + '</td>'
           + '<td style="padding:4px 3px"><input type="text" value="' + String(c.valor).replace('.', ',') + '" onchange="cotEdit(' + i + ',\'valor\',this.value)" style="width:80px;text-align:right;' + INP + ';padding:5px 7px"></td>'
           + '<td style="padding:4px 3px"><select onchange="cotEdit(' + i + ',\'unidade\',this.value)" style="' + INP + ';padding:5px 4px"><option' + (c.unidade === 'R$/t' ? ' selected' : '') + '>R$/t</option><option' + (c.unidade === 'R$/sc' ? ' selected' : '') + '>R$/sc</option></select></td>'
           + '<td style="padding:4px 3px"><input type="date" value="' + esc(c.dataCotacao) + '" onchange="cotEdit(' + i + ',\'dataCotacao\',this.value)" style="' + INP + ';padding:5px 5px"></td>'
@@ -20729,16 +20795,160 @@ if (typeof dashRender === 'function') dashRender();
   };
   window.cotRemSug = function (i) { _sug[i] = null; var tr = document.getElementById('cot-sug-' + i); if (tr) tr.remove(); };
   window.cotSalvar = async function () {
-    var itens = _sug.filter(function (c) { return c && c.valor > 0 && c.origem && c.destino && c.transportadora; });
-    var pend = _sug.filter(function (c) { return c && (c.transportadora === '(informar)' || c.origem === '(informar)' || c.destino === '(informar)'); }).length;
-    if (pend) { toast('Preencha transportadora/origem das ' + pend + ' linha(s) marcadas "(informar)".', 'ti-alert-triangle'); return; }
+    var itens = _sug.filter(function (c) { return c && c.valor > 0 && c.origem && c.destino; });
+    var pend = _sug.filter(function (c) { return c && (c.origem === '(informar)' || c.destino === '(informar)'); }).length;
+    if (pend) { toast('Preencha a origem das ' + pend + ' linha(s) marcadas "(informar)".', 'ti-alert-triangle'); return; }
     if (!itens.length) { toast('Nenhuma cotação válida para salvar.', 'ti-alert-triangle'); return; }
     var r = await window.apiFetch(BASE + '/lote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itens: itens.map(function (c) { return { grupo: c.grupo || undefined, transportadora: c.transportadora, origem: c.origem, destino: c.destino, produto: c.produto || undefined, veiculo: c.veiculo || undefined, valor: c.valor, unidade: c.unidade, dataCotacao: c.dataCotacao, observacao: c.observacao || undefined, textoOrigem: c.textoOrigem || undefined }; }) }) });
     var j = await r.json().catch(function () { return {}; });
     if (!r.ok) { toast((Array.isArray(j.message) ? j.message.join(' · ') : j.message) || 'Erro ao salvar', 'ti-alert-triangle'); return; }
     var m = document.getElementById('cot-modal'); if (m) m.remove();
     toast(j.criadas + ' cotação(ões) salva(s)' + (j.duplicadas ? ' · ' + j.duplicadas + ' já existia(m)' : '') + '.', 'ti-check');
-    window.cotInit();
+    window.cotInit();                       // vigente (e KPIs) já com o frete novo
+    window.cotRenderHistorico();            // histórico
+    if (typeof window.cotEvolucaoInit === 'function') window.cotEvolucaoInit(); // gráfico mensal
+  };
+
+
+  // ══════════ Evolução mensal: escolhe UMA rota (origem → destino) e vê o frete médio de cada mês ══════════
+  var COR = '#2a78d6'; // série única (azul validado da paleta de referência)
+  var MES3 = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  var _all = [];
+  function ymLabel(ym, curto) { var p = ym.split('-'); return MES3[Number(p[1]) - 1] + (curto ? '/' + p[0].slice(2) : '/' + p[0]); }
+  function selv(id) { var e = document.getElementById(id); return e ? e.value : ''; }
+  function fillSel(id, opts, manter) {
+    var e = document.getElementById(id); if (!e) return;
+    var atual = manter ? e.value : '';
+    e.innerHTML = opts.map(function (o) { return '<option value="' + esc(o[0]) + '">' + esc(o[1]) + '</option>'; }).join('');
+    if (atual && opts.some(function (o) { return o[0] === atual; })) e.value = atual;
+  }
+  function brl2(v) { return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function n2(v) { return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function ticksNice(min, max, n) {
+    var span = Math.max(max - min, 1), raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    var step = [1, 2, 2.5, 5, 10].map(function (m) { return m * mag; }).find(function (x) { return x >= raw; });
+    var lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, t = [];
+    for (var v = lo; v <= hi + step / 2; v += step) t.push(Math.round(v * 100) / 100);
+    return t;
+  }
+  function contar(arr, chave) { var m = {}; arr.forEach(function (c) { var k = chave(c); m[k] = (m[k] || 0) + 1; }); return m; }
+
+  window.cotEvolucaoInit = async function () {
+    try { _all = await jget(BASE); } catch (e) { _all = []; }
+    var anos = Array.from(new Set(_all.map(function (c) { return c.dataCotacao.slice(0, 4); }))).sort().reverse();
+    var veics = Array.from(new Set(_all.map(function (c) { return c.veiculo; }).filter(Boolean))).sort();
+    fillSel('cot-e-ano', [['', 'Total (todos os anos)']].concat(anos.map(function (a) { return [a, 'Ano ' + a]; })), true);
+    fillSel('cot-e-veic', [['', 'Todos os veículos']].concat(veics.map(function (v) { return [v, v]; })), true);
+    var cO = contar(_all, function (c) { return c.origem; });
+    var origens = Object.keys(cO).sort(function (a, b) { return a.localeCompare(b); });
+    var antes = selv('cot-e-orig');
+    fillSel('cot-e-orig', origens.map(function (o) { return [o, o + ' (' + cO[o] + ')']; }), true);
+    if (!origens.length) { fillSel('cot-e-dest', []); window.cotEvolucaoRender(); return; }
+    if (!antes) {
+      // começa pela rota com mais cotações (dá para trocar em seguida)
+      var cR = contar(_all, function (c) { return c.origem + '||' + c.destino; });
+      var top = Object.keys(cR).sort(function (a, b) { return cR[b] - cR[a]; })[0].split('||');
+      document.getElementById('cot-e-orig').value = top[0];
+      window.cotEvolucaoOrigem(top[1]);
+    } else window.cotEvolucaoOrigem(selv('cot-e-dest'));
+  };
+  // Troca de origem → recarrega só os destinos dessa origem (e escolhe o mais cotado, se não houver um pedido)
+  window.cotEvolucaoOrigem = function (preferido) {
+    var o = selv('cot-e-orig');
+    var cD = contar(_all.filter(function (c) { return c.origem === o; }), function (c) { return c.destino; });
+    var dests = Object.keys(cD).sort(function (a, b) { return a.localeCompare(b); });
+    fillSel('cot-e-dest', dests.map(function (d) { return [d, d + ' (' + cD[d] + ')']; }), false);
+    var el = document.getElementById('cot-e-dest');
+    if (typeof preferido === 'string' && dests.indexOf(preferido) >= 0) el.value = preferido;
+    else if (dests.length) el.value = dests.sort(function (a, b) { return cD[b] - cD[a]; })[0];
+    window.cotEvolucaoRender();
+  };
+
+  function kpiMini(rot, val, sub) {
+    return '<div style="flex:1;min-width:130px;background:var(--n50);border-radius:10px;padding:10px 12px"><div style="font-size:9px;color:var(--n500);font-weight:700;text-transform:uppercase;letter-spacing:.3px">' + rot + '</div><div style="font-size:16px;font-weight:800;color:var(--dark);margin-top:2px">' + val + '</div>' + (sub ? '<div style="font-size:10px;color:var(--n500)">' + sub + '</div>' : '') + '</div>';
+  }
+
+  window.cotEvolucaoRender = function () {
+    var host = document.getElementById('cot-evolucao'); if (!host) return;
+    var orig = selv('cot-e-orig'), dest = selv('cot-e-dest'), ano = selv('cot-e-ano'), veic = selv('cot-e-veic'), un = selv('cot-e-un') || 'R$/t';
+    if (!orig || !dest) { host.innerHTML = '<div style="padding:34px;text-align:center;color:var(--n500);font-size:12px">' + (_all.length ? 'Escolha a origem e o destino da rota.' : 'Cole cotações para começar o histórico.') + '</div>'; return; }
+    var dados = _all.filter(function (c) { return c.origem === orig && c.destino === dest && c.unidade === un && (!veic || c.veiculo === veic) && (!ano || c.dataCotacao.slice(0, 4) === ano); });
+    if (!dados.length) { host.innerHTML = '<div style="padding:34px;text-align:center;color:var(--n500);font-size:12px">Sem cotações dessa rota com esses filtros (' + esc(un) + (veic ? ' · ' + esc(veic) : '') + (ano ? ' · ' + ano : '') + ').</div>'; return; }
+
+    // eixo de meses
+    var meses = [];
+    if (ano) { for (var m = 1; m <= 12; m++) meses.push(ano + '-' + String(m).padStart(2, '0')); }
+    else {
+      var yms = dados.map(function (c) { return c.dataCotacao.slice(0, 7); }).sort();
+      var y = Number(yms[0].slice(0, 4)), mo = Number(yms[0].slice(5)), yF = Number(yms[yms.length - 1].slice(0, 4)), mF = Number(yms[yms.length - 1].slice(5));
+      while (y < yF || (y === yF && mo <= mF)) { meses.push(y + '-' + String(mo).padStart(2, '0')); mo++; if (mo > 12) { mo = 1; y++; } }
+      if (meses.length > 60) meses = meses.slice(-60);
+    }
+    var porMes = {}; dados.forEach(function (c) { var ym = c.dataCotacao.slice(0, 7); (porMes[ym] = porMes[ym] || []).push(c.valor); });
+    var pts = meses.map(function (ym) {
+      var a = porMes[ym]; if (!a || !a.length) return null;
+      return { v: a.reduce(function (s2, x) { return s2 + x; }, 0) / a.length, min: Math.min.apply(null, a), max: Math.max.apply(null, a), n: a.length };
+    });
+    var todos = dados.map(function (c) { return c.valor; });
+    var media = todos.reduce(function (s2, x) { return s2 + x; }, 0) / todos.length;
+    var ult = dados.slice().sort(function (a, b) { return a.dataCotacao < b.dataCotacao ? 1 : -1; })[0];
+
+    // escala (inclui mín/máx do mês)
+    var vmin = Math.min.apply(null, todos), vmax = Math.max.apply(null, todos), folga = Math.max((vmax - vmin) * 0.15, vmax * 0.03);
+    var tk = ticksNice(Math.max(0, vmin - folga), vmax + folga, 4), y0 = tk[0], y1 = tk[tk.length - 1];
+    var W = 900, H = 300, ml = 62, mr = 18, mt = 12, mb = 34, pw = W - ml - mr, ph = H - mt - mb, n = meses.length;
+    var X = function (i) { return n === 1 ? ml + pw / 2 : ml + i * pw / (n - 1); };
+    var Y = function (v) { return mt + ph - (v - y0) / (y1 - y0 || 1) * ph; };
+    var grade = tk.map(function (t) { return '<line x1="' + ml + '" x2="' + (W - mr) + '" y1="' + Y(t) + '" y2="' + Y(t) + '" stroke="#e6e8e5" stroke-width="1"/><text x="' + (ml - 8) + '" y="' + (Y(t) + 4) + '" text-anchor="end" font-size="11" fill="#6b716d">' + t.toLocaleString('pt-BR') + '</text>'; }).join('');
+    var passo = n > 24 ? Math.ceil(n / 12) : 1;
+    var eixoX = meses.map(function (ym, i) { return (i % passo === 0) ? '<text x="' + X(i) + '" y="' + (H - 12) + '" text-anchor="middle" font-size="11" fill="#6b716d">' + (ano ? MES3[Number(ym.slice(5)) - 1] : ymLabel(ym, true)) + '</text>' : ''; }).join('');
+    var faixa = pts.map(function (p, i) { return (p && p.max > p.min) ? '<line x1="' + X(i) + '" x2="' + X(i) + '" y1="' + Y(p.max) + '" y2="' + Y(p.min) + '" stroke="' + COR + '" stroke-opacity=".25" stroke-width="8" stroke-linecap="round"/>' : ''; }).join('');
+    var d = '', ant = false;
+    pts.forEach(function (p, i) { if (!p) { ant = false; return; } d += (ant ? ' L ' : ' M ') + X(i).toFixed(1) + ' ' + Y(p.v).toFixed(1); ant = true; });
+    var marc = pts.map(function (p, i) {
+      if (!p) return '';
+      var isolado = !pts[i - 1] && !pts[i + 1];
+      if (n > 24 && !isolado) return '';
+      return '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="4" fill="' + COR + '" stroke="#fff" stroke-width="2"/>';
+    }).join('');
+
+    var titulo = orig + ' → ' + dest + ' · frete médio mensal · ' + (ano ? 'Ano ' + ano : 'Total (todos os anos)') + ' · ' + un;
+    var linhasTab = pts.map(function (p, i) { return p ? { ym: meses[i], p: p } : null; }).filter(Boolean);
+    var tabela = linhasTab.map(function (l, k) {
+      var prev = k > 0 ? linhasTab[k - 1].p.v : null, v = prev ? (l.p.v - prev) / prev * 100 : null;
+      var vc = v == null ? 'var(--n400)' : (v > 0 ? '#C0392B' : (v < 0 ? 'var(--green)' : 'var(--n500)'));
+      return '<tr style="border-top:1px solid var(--n50)"><td style="padding:6px 10px;font-weight:600">' + ymLabel(l.ym) + '</td><td style="text-align:right;padding:6px 10px;font-weight:800;font-family:\'DM Mono\',monospace">' + n2(l.p.v) + '</td><td style="text-align:right;padding:6px 10px;font-family:\'DM Mono\',monospace;color:var(--n700)">' + n2(l.p.min) + '</td><td style="text-align:right;padding:6px 10px;font-family:\'DM Mono\',monospace;color:var(--n700)">' + n2(l.p.max) + '</td><td style="text-align:center;padding:6px 10px;color:var(--n500)">' + l.p.n + '</td><td style="text-align:center;padding:6px 10px;font-weight:700;color:' + vc + '">' + (v == null ? '—' : ((v > 0 ? '▲ ' : (v < 0 ? '▼ ' : '')) + Math.abs(v).toFixed(1).replace('.', ',') + '%')) + '</td></tr>';
+    }).join('');
+
+    host.innerHTML = '<div style="font-size:13px;font-weight:800;color:var(--dark)">' + esc(titulo) + '</div>'
+      + '<div style="font-size:11px;color:var(--n500);margin:2px 0 12px">Média simples das cotações de cada mês. A barra clara em cada ponto vai do menor ao maior valor do mês. Meses sem cotação ficam em branco.</div>'
+      + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
+      + kpiMini('Média do período', brl2(media), todos.length + ' cotação(ões)')
+      + kpiMini('Menor', brl2(vmin)) + kpiMini('Maior', brl2(vmax))
+      + kpiMini('Última cotação', brl2(ult.valor), dbr(ult.dataCotacao) + (ult.transportadora ? ' · ' + esc(ult.transportadora) : ''))
+      + '</div>'
+      + '<div id="cot-e-wrap" style="position:relative"><svg id="cot-e-svg" viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block" role="img" aria-label="' + esc(titulo) + '">'
+      + grade + eixoX + faixa + '<path d="' + d + '" fill="none" stroke="' + COR + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' + marc
+      + '<line id="cot-e-cross" x1="0" x2="0" y1="' + mt + '" y2="' + (mt + ph) + '" stroke="#9aa09b" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>'
+      + '<rect id="cot-e-hit" x="' + ml + '" y="' + mt + '" width="' + pw + '" height="' + ph + '" fill="transparent"/></svg>'
+      + '<div id="cot-e-tip" style="position:absolute;display:none;pointer-events:none;background:#fff;border:1px solid var(--n100);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:8px 10px;font-size:11px;min-width:160px;z-index:5"></div></div>'
+      + '<div style="margin-top:14px;font-size:10px;font-weight:700;color:var(--n500);text-transform:uppercase;letter-spacing:.4px">Tabela mensal</div>'
+      + '<div style="margin-top:6px;border:1px solid var(--n100);border-radius:10px;overflow:hidden"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--n50);color:var(--n700);font-size:9px;text-transform:uppercase"><th style="text-align:left;padding:7px 10px">Mês</th><th style="text-align:right;padding:7px 10px">Média (' + esc(un) + ')</th><th style="text-align:right;padding:7px 10px">Mínimo</th><th style="text-align:right;padding:7px 10px">Máximo</th><th style="padding:7px 10px">Cotações</th><th style="padding:7px 10px">Var. vs mês anterior</th></tr></thead><tbody>' + tabela + '</tbody></table></div>';
+
+    // hover: linha vertical + tooltip do mês
+    var hit = document.getElementById('cot-e-hit'), svg = document.getElementById('cot-e-svg'), cross = document.getElementById('cot-e-cross'), tip = document.getElementById('cot-e-tip'), wrap = document.getElementById('cot-e-wrap');
+    hit.addEventListener('mousemove', function (ev) {
+      var r = svg.getBoundingClientRect(), esc2 = W / r.width, px = (ev.clientX - r.left) * esc2;
+      var i = n === 1 ? 0 : Math.max(0, Math.min(n - 1, Math.round((px - ml) / (pw / (n - 1))))), p = pts[i], xx = X(i);
+      cross.setAttribute('x1', xx); cross.setAttribute('x2', xx); cross.style.display = '';
+      tip.innerHTML = '<div style="font-weight:800;color:var(--dark);margin-bottom:3px">' + ymLabel(meses[i]) + '</div>' + (p
+        ? '<div>Média <b style="font-family:\'DM Mono\',monospace">' + brl2(p.v) + '</b></div><div style="color:var(--n500)">mín ' + n2(p.min) + ' · máx ' + n2(p.max) + ' · ' + p.n + ' cotação(ões)</div>'
+        : '<div style="color:var(--n500)">sem cotações</div>');
+      tip.style.display = 'block';
+      var wl = xx / esc2, tw = tip.offsetWidth;
+      tip.style.left = (wl + tw + 20 > wrap.clientWidth ? wl - tw - 12 : wl + 12) + 'px'; tip.style.top = '10px';
+    });
+    hit.addEventListener('mouseleave', function () { cross.style.display = 'none'; tip.style.display = 'none'; });
   };
 
   console.log('%c[MODO·RIR] Logística › Cotação de Fretes ativa.', 'color:#1A4A2A;font-weight:bold');

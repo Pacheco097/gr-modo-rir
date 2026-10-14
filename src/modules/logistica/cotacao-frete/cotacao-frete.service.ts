@@ -13,11 +13,14 @@ import {
 type Row = CotacaoFrete;
 
 const norm = (s: string | null | undefined) => (s ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+const PEQUENAS = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
 const titulo = (s: string) =>
   s
     .trim()
     .replace(/\s+/g, ' ')
-    .replace(/(^|\s)(\p{L})/gu, (_m, a, b) => a + b.toUpperCase());
+    .split(' ')
+    .map((w, i) => (i > 0 && PEQUENAS.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(' ');
 
 @Injectable()
 export class CotacaoFreteService {
@@ -74,12 +77,12 @@ export class CotacaoFreteService {
 
   /** Grava as cotações confirmadas (ignora duplicadas idênticas). */
   async salvarLote(dto: SalvarCotacoesLoteDto, usuario: string): Promise<{ criadas: number; duplicadas: number }> {
-    const itens = (dto.itens ?? []).filter((i) => i && Number(i.valor) > 0 && i.origem?.trim() && i.destino?.trim() && i.transportadora?.trim());
+    const itens = (dto.itens ?? []).filter((i) => i && Number(i.valor) > 0 && i.origem?.trim() && i.destino?.trim());
     if (!itens.length) throw new BadRequestException('Nenhuma cotação válida para salvar');
     const existentes = await this.prisma.cotacaoFrete.findMany({
       where: { dataCotacao: { in: Array.from(new Set(itens.map((i) => i.dataCotacao))) } },
     });
-    const chave = (t: string, o: string, d: string, v: number, u: string, dt: string, ve?: string | null) => [norm(t), norm(o), norm(d), norm(ve), v.toFixed(2), u, dt].join('|');
+    const chave = (t: string | null | undefined, o: string, d: string, v: number, u: string, dt: string, ve?: string | null) => [norm(t), norm(o), norm(d), norm(ve), v.toFixed(2), u, dt].join('|');
     const vistos = new Set(existentes.map((e) => chave(e.transportadora, e.origem, e.destino, Number(e.valor), e.unidade, e.dataCotacao, e.veiculo)));
     const novas: Prisma.CotacaoFreteCreateManyInput[] = [];
     let duplicadas = 0;
@@ -93,7 +96,7 @@ export class CotacaoFreteService {
       vistos.add(k);
       novas.push({
         grupo: i.grupo?.trim() || null,
-        transportadora: titulo(i.transportadora),
+        transportadora: i.transportadora?.trim() ? titulo(i.transportadora) : null,
         origem: titulo(i.origem),
         destino: titulo(i.destino),
         produto: i.produto?.trim() || null,

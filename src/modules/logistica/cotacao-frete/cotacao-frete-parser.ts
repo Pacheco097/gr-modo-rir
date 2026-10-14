@@ -7,6 +7,7 @@
  * O resultado é SEMPRE uma sugestão: o usuário confere e confirma antes de gravar.
  */
 import { Logger } from '@nestjs/common';
+import { acharCidades, canonicaLugar, fmtCidade } from './cidades';
 
 export interface CotacaoSugerida {
   grupo?: string;
@@ -142,6 +143,7 @@ function acharPreco(linha: string, temRota: boolean): CandidatoPreco | null {
     const sufixo = /reais|conto|pila|,-|\.-/i.test(m[0]);
     const prefixo = !!m[1] || sufixo;
     const decimal = /[,.]\d{1,2}$/.test(m[2]);
+    if (linha[m.index - 1] === '/' || linha[m.index + m[0].length] === '/') continue; // parte de data (08/10/2026)
     if (!prefixo && !decimal && !temRota) continue; // inteiro solto só vale em linha de rota ("... - 405")
     const valor = Number(m[2].replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.'));
     const unidade = /^(sc|saca|sacas|sac)$/i.test(m[3] ?? '') ? 'R$/sc' : 'R$/t';
@@ -164,6 +166,41 @@ function numeroCelula(cel: string): number | null {
   return Number(m[1].replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.'));
 }
 
+const PRECO_R = /(?:R\$\s*\d[\d.,]*|\b\d{2,4}(?:[.,]\d{1,2})?\s*\/\s*(?:t|ton|tn|sc)\b)(?:\s*\/\s*[A-Za-z]{1,4})?/gi;
+/** Linha com 2+ preços ("A x B R$300 | A x C R$280") vira uma linha por preço. */
+function expandirLinhas(texto: string): string[] {
+  const out: string[] = [];
+  for (const l of texto.split(/\r?\n/)) {
+    const h = CABECALHO.exec(l.trim());
+    const corpo = h ? h[5] : l;
+    const prefixo = h ? l.slice(0, l.length - corpo.length) : '';
+    const ms = Array.from(corpo.matchAll(PRECO_R));
+    if (ms.length < 2 || /\t/.test(corpo)) {
+      out.push(l);
+      continue;
+    }
+    let ini = 0;
+    const segs: string[] = [];
+    ms.forEach((m, k) => {
+      const fim = k === ms.length - 1 ? corpo.length : (m.index as number) + m[0].length;
+      let seg = corpo.slice(ini, fim);
+      ini = fim;
+      if (k > 0) {
+        seg = seg.replace(/^[\s|;,/•·\-–—]+/, '');
+        // "(bitrem)" logo após o preço anterior pertence a ele, não ao próximo
+        const v = /^(\([^)]{1,25}\)|[^|;,]{0,25}?(?:bitrem|bi-trem|rodo\s*-?\s*ca[cç]amba|9\s*eixos|graneleiro|carreta|rodotrem)[^|;,]{0,12})\s*(?:[|;,]|$)/i.exec(seg);
+        if (v && segs.length) {
+          segs[segs.length - 1] += ' ' + v[1];
+          seg = seg.slice(v[0].length).replace(/^[\s|;,/•·\-–—]+/, '');
+        }
+      }
+      segs.push(seg);
+    });
+    segs.forEach((seg, k) => out.push((k === 0 ? prefixo : '') + seg));
+  }
+  return out;
+}
+
 export function interpretarPorRegras(texto: string, grupo?: string, dataPadrao?: string, transportadoraPadrao?: string): ResultadoInterpretacao {
   const avisos: string[] = [];
   const itens: CotacaoSugerida[] = [];
@@ -178,7 +215,7 @@ export function interpretarPorRegras(texto: string, grupo?: string, dataPadrao?:
   let pulandoContatos = false;
   let colmap: Record<number, string> | null = null;
 
-  const transpAtual = (extra?: string) => extra || ctx.transp || ctx.autor || (transportadoraPadrao ? nomeProprio(transportadoraPadrao) : '') || '(informar)';
+  const transpAtual = (extra?: string) => extra || ctx.transp || ctx.autor || (transportadoraPadrao ? nomeProprio(transportadoraPadrao) : '');
   const empurra = (it: CotacaoSugerida) => {
     itens.push(it);
     pend = it;
@@ -192,7 +229,7 @@ export function interpretarPorRegras(texto: string, grupo?: string, dataPadrao?:
     pulandoContatos = false;
   };
 
-  for (const bruta of texto.split(/\r?\n/)) {
+  for (const bruta of expandirLinhas(texto)) {
     let linha = bruta.replace(/ /g, ' ').trimEnd();
     if (!linha.trim()) {
       resetBloco();
@@ -302,7 +339,7 @@ export function interpretarPorRegras(texto: string, grupo?: string, dataPadrao?:
       continue;
     }
 
-    const temRota = !!partirRota(c.replace(/R\$\s*[\d.,]+/g, ' '));
+    const temRota = !!partirRota(c.replace(/R\$\s*[\d.,]+/g, ' ')) || acharCidades(c).length >= 2;
     const preco = acharPreco(c, temRota);
 
     if (!preco) {
@@ -376,13 +413,22 @@ export function interpretarPorRegras(texto: string, grupo?: string, dataPadrao?:
     const longa = !!rotaSimples && (rotaSimples[0].split(/\s+/).length > 4 || rotaSimples[1].split(/\s+/).length > 4);
     const prosa = !destino && (longa || (!rotaSimples && resto.split(/\s+/).length > 4)) ? PROSA.exec(resto) : null;
     const rota = prosa ? null : rotaSimples;
+    const cs = !destino ? acharCidades(resto) : [];
     if (prosa) {
       origem = lugar(prosa[1]);
       destino = lugar(prosa[2]);
+    } else if (cs.length >= 2) {
+      origem = fmtCidade(cs[0]);
+      destino = fmtCidade(cs[1]);
+    } else if (rota && !longa) {
+      origem = lugar(rota[0]);
+      destino = lugar(rota[1]);
+    } else if (cs.length === 1) {
+      destino = fmtCidade(cs[0]); // origem vem do cabeçalho "ORIGEM ..." (se houver)
     } else if (rota) {
       origem = lugar(rota[0]);
       destino = lugar(rota[1]);
-    } else if (!destino && temLetras(resto)) {
+    } else if (!destino && temLetras(resto) && resto.split(/\s+/).length <= 6) {
       destino = lugar(resto); // "Palmeira-PR R$ 90,00" na mesma linha
     } else if (!destino && buf.length) {
       const k = buf.findIndex((b) => SEP_LINHA.test(b));
@@ -396,6 +442,14 @@ export function interpretarPorRegras(texto: string, grupo?: string, dataPadrao?:
         destino = lugar(rUlt[1]);
       } else {
         destino = lugar(ult);
+        // sem separador explícito: usa as cidades reconhecidas no bloco ("Sorriso MT" / "Santos SP" / "R$ 305")
+        const cb = acharCidades(buf.join(' | '));
+        if (cb.length >= 2 && !ctx.origem) {
+          origem = fmtCidade(cb[cb.length - 2]);
+          destino = fmtCidade(cb[cb.length - 1]);
+        } else if (cb.length >= 1) {
+          destino = fmtCidade(cb[cb.length - 1]);
+        }
       }
     }
     buf = [];
@@ -422,18 +476,22 @@ export function interpretarPorRegras(texto: string, grupo?: string, dataPadrao?:
   if (incompleto) naoLidas.push((incompleto as CotacaoSugerida).textoOrigem ?? '');
   if (!itens.length) avisos.push('Não reconheci cotações nesse texto. Cada cotação precisa de um valor (ex.: R$ 257,30) e um destino.');
   if (naoLidas.length) avisos.push(`${naoLidas.length} linha(s) com número não viraram cotação (veja abaixo).`);
-  if (itens.some((i) => i.transportadora === '(informar)')) avisos.push('Informe a transportadora no campo acima ou na conferência.');
   if (itens.some((i) => i.origem === '(informar)')) avisos.push('Algumas cotações ficaram sem origem — preencha na conferência.');
+  // Padroniza os nomes de cidade (acentos, UF) para a mesma cidade nunca virar "rotas diferentes".
+  for (const it of itens) {
+    if (it.origem !== '(informar)') it.origem = canonicaLugar(it.origem);
+    it.destino = canonicaLugar(it.destino);
+  }
   return { fonte: 'regras', itens, avisos, naoLidas: naoLidas.slice(0, 15) };
 }
 
 // ───────────────────────── IA (Claude, texto e imagens) ─────────────────────────
 const SISTEMA = `Você extrai cotações / liberações de frete rodoviário (grãos, farelo, etc.) de TEXTOS e IMAGENS (cartazes, tabelas, prints de WhatsApp) recebidos por uma trading agrícola brasileira. Os formatos NÃO são padronizados.
 Responda SOMENTE com um array JSON (sem texto antes/depois, sem markdown). Cada item:
-{"transportadora": string, "origem": string, "destino": string, "produto": string|null, "veiculo": string|null, "valor": number, "unidade": "R$/t"|"R$/sc", "dataCotacao": "YYYY-MM-DD", "observacao": string|null}
+{"transportadora": string ("" se não houver), "origem": string, "destino": string, "produto": string|null, "veiculo": string|null, "valor": number, "unidade": "R$/t"|"R$/sc", "dataCotacao": "YYYY-MM-DD", "observacao": string|null}
 Regras:
 - Uma cotação = uma transportadora + uma rota (origem→destino) + um veículo + um valor. Mensagem/cartaz/tabela com várias rotas gera um item por rota.
-- "transportadora": a empresa que divulga o frete (marca/título do cartaz ou da mensagem, ex.: "Movemos Transportes", "1500 Transportes"). Se não houver, use o autor da mensagem; se nem isso, "(informar)". Em tabelas com coluna "CLIENTE", o cliente NÃO é a transportadora: coloque-o em "observacao".
+- "transportadora": a empresa que divulga o frete (marca/título do cartaz ou da mensagem, ex.: "Movemos Transportes", "1500 Transportes"). Se não houver, use o autor da mensagem; se nem isso, deixe "". Em tabelas com coluna "CLIENTE", o cliente NÃO é a transportadora: coloque-o em "observacao".
 - Cabeçalhos como "ORIGEM PARANAGUÁ" ou "FILIAL X" valem para todas as rotas abaixo. Em tabelas, origem e destino vêm das colunas.
 - Setas, "X", "x", "-", "→", "para" separam origem e destino. Atenção: nomes de local podem ter hífen (ex.: "Cuiabá - Root X Conquista do Oeste" = origem "Cuiabá - Root", destino "Conquista do Oeste").
 - Escreva cidades como "Cidade/UF" quando a UF aparecer (ex.: "Palmeira/PR", "Sinop/MT"); sem UF, só a cidade. Primeira letra de cada palavra em maiúscula; mantenha a mesma grafia para a mesma cidade.
@@ -471,7 +529,7 @@ async function chamarClaude(chave: string, conteudo: Bloco[], grupo: string | un
   return (Array.isArray(arr) ? arr : [])
     .map((x: any) => ({
       grupo,
-      transportadora: String(x.transportadora ?? '(informar)').trim() || '(informar)',
+      transportadora: x.transportadora && !/informar/i.test(String(x.transportadora)) ? String(x.transportadora).trim() : '',
       origem: String(x.origem ?? '').trim(),
       destino: String(x.destino ?? '').trim(),
       produto: x.produto ? String(x.produto).trim() : undefined,
