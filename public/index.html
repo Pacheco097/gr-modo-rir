@@ -953,6 +953,19 @@ body, body *:not(i):not([class*="ti-"]):not(.ti){font-family:'Inter',sans-serif 
           <div style="padding:4px 14px 12px"><table id="pg-fluxo-tabela" style="font-size:11px;width:100%"></table></div>
         </div>
 
+        <div class="card" style="margin-top:14px" id="pg-proc-card">
+          <div class="card-head" style="flex-wrap:wrap;gap:8px">
+            <div class="card-title"><i class="ti ti-folders" style="color:var(--green)"></i> Fluxo de processos <span style="font-size:11px;font-weight:400;color:var(--n500)">CT-Es agrupados por nº de processo</span></div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input id="pg-proc-busca" list="pg-proc-opcoes" oninput="pgProcBusca()" placeholder="Pesquisar nº do processo…" class="inp" style="font-size:11px;padding:6px 10px;width:230px">
+              <datalist id="pg-proc-opcoes"></datalist>
+              <span id="pg-proc-count" style="font-size:11px;color:var(--n500)"></span>
+            </div>
+          </div>
+          <div id="pg-proc-lista"></div>
+          <div id="pg-proc-detalhe"></div>
+        </div>
+
         </div><!-- /pf-pane-ctes -->
 
         <div id="pf-pane-descarga" style="display:none">
@@ -3594,7 +3607,7 @@ function dashRender(){
           <td style="padding:8px 10px;text-align:right;${NW};font-weight:800;color:var(--red)">− ${_dashBRL(x.val)}</td>
           <td style="padding:8px 10px;text-align:right;font-weight:700;color:var(--n700)">${pc.toFixed(1)}%</td>
           <td style="padding:8px 10px"><div style="background:var(--n100);border-radius:5px;height:12px;position:relative"><div style="position:absolute;left:0;top:0;height:100%;width:${w}%;background:${x.cor};border-radius:5px"></div></div></td></tr>`; }).join('')
-      + `<tr style="border-top:2px solid var(--n300);background:var(--n50)"><td style="padding:8px 10px;font-weight:900">Total de descontos</td><td style="padding:8px 10px;text-align:right;${NW};font-weight:900;color:var(--red)">− ${_dashBRL(totDesc)}</td><td colspan="2"></td></tr></tbody>`;
+      + `<tr style="border-top:2px solid var(--n300);background:var(--n50)"><td style="padding:8px 10px;font-size:12px;font-weight:900">Total de descontos</td><td style="padding:8px 10px;text-align:right;${NW};font-weight:900;color:var(--red)">− ${_dashBRL(totDesc)}</td><td colspan="2"></td></tr></tbody>`;
   }
 
   // Tabela: resultado por contrato (amarração)
@@ -15501,21 +15514,21 @@ if (typeof dashRender === 'function') dashRender();
           var maxV = Math.max(1, itens.reduce(function (m, x) { return Math.max(m, Math.abs(x.val)); }, 0));
           var NWd = 'white-space:nowrap';
           var _resCaixaT = Number(((Number(t.resultado) || 0) - ((Number(t.ajusteIcms) || 0) + (Number(t.fretePisCofins) || 0) + (Number(t.freteIcms) || 0) + (Number(t.classifPisCofins) || 0) + (Number(t.corretagemPisCofins) || 0) + (Number(t.receitaPisCofins) || 0))).toFixed(2));
-          var resRow = function (rot, v) { return '<tr style="background:' + (v >= 0 ? '#12331F' : '#7B241C') + '"><td style="padding:10px;font-weight:900;color:#fff">' + rot + '</td><td colspan="3" style="padding:10px;text-align:right;font-weight:900;font-size:14px;color:#fff;' + NWd + '">' + brl(v) + '</td></tr>'; };
-          var celValor = function (v) { var neg = v < 0; return '<span style="font-weight:800;color:' + (neg ? 'var(--green)' : 'var(--red)') + '">' + (neg ? '+ ' : '− ') + brl(Math.abs(v)) + '</span>' + (neg ? '<div style="font-size:8px;color:var(--green);font-weight:600">receita</div>' : ''); };
+          var resRow = function (rot, v) { return '<tr style="background:' + (v >= 0 ? '#12331F' : '#7B241C') + '"><td style="padding:10px;font-size:12px;font-weight:900;color:#fff;white-space:nowrap">' + rot + '</td><td colspan="3" style="padding:10px;text-align:right;font-weight:900;font-size:14px;color:#fff;' + NWd + '">' + brl(v) + '</td></tr>'; };
+          var celValor = function (v) { var neg = v < 0; return '<span style="font-size:12px;font-weight:800;white-space:nowrap;color:' + (neg ? 'var(--green)' : 'var(--red)') + '">' + (neg ? '+ ' : '− ') + brl(Math.abs(v)) + '</span>' ; };
           dd.innerHTML = '<thead><tr style="background:var(--n50);color:var(--n700);font-size:9px;text-transform:uppercase;letter-spacing:.4px">'
             + '<th style="text-align:left;padding:7px 10px">Desconto</th><th style="text-align:right;padding:7px 10px;' + NWd + '">Valor</th><th style="text-align:right;padding:7px 10px">% do total</th><th style="width:34%;padding:7px 10px">&nbsp;</th></tr></thead><tbody>'
             + itens.map(function (x, i) {
               var w = (Math.abs(x.val) / maxV * 100).toFixed(0); var pc = totDesc ? (x.val / totDesc * 100) : 0;
               return '<tr style="' + (i % 2 ? 'background:var(--n50)' : '') + ';border-bottom:1px solid var(--n50)">'
-                + '<td style="padding:8px 10px;font-weight:700;color:var(--dark)"><i class="ti ' + x.ic + '" style="color:' + x.cor + ';font-size:14px;vertical-align:-2px"></i> ' + x.nome + '<div style="font-size:9px;color:var(--n500);font-weight:400;margin-top:1px">' + x.obs + '</div></td>'
-                + '<td style="padding:8px 10px;text-align:right;' + NWd + '">' + celValor(x.val) + '</td>'
-                + '<td style="padding:8px 10px;text-align:right;font-weight:700;color:var(--n700)">' + pc.toFixed(1) + '%</td>'
+                + '<td style="padding:8px 10px;font-size:12px;font-weight:700;color:var(--dark);white-space:nowrap"><i class="ti ' + x.ic + '" style="color:' + x.cor + ';font-size:14px;vertical-align:-2px"></i> ' + x.nome + '<div style="font-size:9px;color:var(--n500);font-weight:400;margin-top:1px">' + x.obs + '</div></td>'
+                + '<td style="padding:8px 10px;text-align:right;font-size:12px;' + NWd + '">' + celValor(x.val) + '</td>'
+                + '<td style="padding:8px 10px;text-align:right;font-size:12px;font-weight:700;color:var(--n700);white-space:nowrap">' + pc.toFixed(1) + '%</td>'
                 + '<td style="padding:8px 10px"><div style="background:var(--n100);border-radius:5px;height:12px;position:relative"><div style="position:absolute;left:0;top:0;height:100%;width:' + w + '%;background:' + x.cor + ';border-radius:5px"></div></div></td></tr>';
             }).join('')
-            + '<tr style="border-top:2px solid var(--n300);background:var(--n50)"><td style="padding:8px 10px;font-weight:900">Total de descontos</td><td style="padding:8px 10px;text-align:right;' + NWd + '">' + celValor(totDesc) + '</td><td colspan="2"></td></tr>'
+            + '<tr style="border-top:2px solid var(--n300);background:var(--n50)"><td style="padding:8px 10px;font-size:12px;font-weight:900">Total de descontos</td><td style="padding:8px 10px;text-align:right;' + NWd + '">' + celValor(totDesc) + '</td><td colspan="2"></td></tr>'
             + resRow('= Resultado líquido', t.resultado)
-            + resRow('= Resultado caixa (sem PIS/COFINS e ICMS)', _resCaixaT)
+            + resRow('= Resultado caixa', _resCaixaT)
             + '</tbody>';
         }
       } catch (e) { console.error('dash-descontos', e); }
@@ -15547,10 +15560,10 @@ if (typeof dashRender === 'function') dashRender();
           var pad = opt.band ? '10px 12px' : '7px 12px';
           var fw = opt.forte ? 800 : 600;
           var lblCor = opt.lblCor || 'var(--dark)';
-          var valSize = opt.band ? '15px' : '13px';
+          var valSize = opt.band ? '14px' : '13px';
           return '<tr style="' + bg + 'border-bottom:1px solid var(--n50)">'
-            + '<td style="padding:' + pad + ';font-weight:' + fw + ';color:' + lblCor + '">' + rot + '</td>'
-            + '<td style="padding:' + pad + ';text-align:right;font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:' + valSize + ';color:' + cor + '">' + (sinal || '') + ' ' + brl(Math.abs(val)) + '</td></tr>';
+            + '<td title="' + rot.replace(/"/g, '&quot;') + '" style="padding:' + pad + ';font-size:12px;font-weight:' + fw + ';color:' + lblCor + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:100%">' + rot + '</td>'
+            + '<td style="padding:' + pad + ';text-align:right;font-family:\'Barlow Condensed\',sans-serif;font-weight:900;font-size:' + valSize + ';color:' + cor + ';white-space:nowrap">' + ((sinal || '') + ' ' + brl(Math.abs(val))).trim().replace(/ /g, '\u00A0') + '</td></tr>';
         };
         var subhead = function (txt) { return '<tr><td colspan="2" style="padding:11px 12px 5px;font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--n400)">' + txt + '</td></tr>'; };
         comp.innerHTML =
@@ -15575,7 +15588,7 @@ if (typeof dashRender === 'function') dashRender();
           (tFreteIcms !== 0 ? linhaComp((tFreteIcms >= 0 ? '(+) ICMS frete' : '(−) ICMS frete'), tFreteIcms, (tFreteIcms >= 0 ? 'var(--green)' : 'var(--red)'), (tFreteIcms >= 0 ? '+' : '−')) : '') +
           (tPis !== 0 ? linhaComp('(+) Receita de PIS/COFINS', tPis, 'var(--green)', '+') : '') +
           linhaComp('= Resultado líquido', t.resultado, '#fff', '', { band: true, forte: true, bg: (t.resultado >= 0 ? '#12331F' : '#7B241C'), lblCor: '#fff' }) +
-          linhaComp('= Resultado caixa (sem PIS/COFINS e ICMS)', t.resultado - (ajIcms + tFretePis + tFreteIcms + tClassifPis + tCorretPis + tPis), '#fff', '', { band: true, forte: true, bg: '#1F4D33', lblCor: '#fff' }) +
+          linhaComp('= Resultado caixa', t.resultado - (ajIcms + tFretePis + tFreteIcms + tClassifPis + tCorretPis + tPis), '#fff', '', { band: true, forte: true, bg: '#1F4D33', lblCor: '#fff' }) +
           (tDeriv !== 0
             ? linhaComp((tDeriv >= 0 ? '(+) Resultado com derivativos (acumulado)' : '(−) Resultado com derivativos (acumulado)'), tDeriv, (tDeriv >= 0 ? 'var(--green)' : 'var(--red)'), (tDeriv >= 0 ? '+' : '−'))
               + linhaComp('= Resultado com derivativos', t.resultado + tDeriv, '#fff', '', { band: true, forte: true, bg: ((t.resultado + tDeriv) >= 0 ? '#12331F' : '#7B241C'), lblCor: '#fff' })
@@ -17526,27 +17539,30 @@ if (typeof dashRender === 'function') dashRender();
       var nPag = (x.pagamentos || []).length;
       var sav = (x.saving == null) ? '—' : ('<span style="color:' + (x.saving >= 0 ? 'var(--green)' : '#C0392B') + ';font-weight:700">' + brl(x.saving) + '</span>');
 
-      // PREVISTO: classificadoras previstas + total, com botão adicionar/editar
+      // PREVISTO e REALIZADO usam o mesmo molde, centralizado: total · detalhe por classificadora · ação
+      var colCel = 'display:flex;flex-direction:column;align-items:center;gap:5px;padding:2px 0';
+      var totCel = function (v) { return '<div style="font-size:14px;font-weight:800;color:var(--dark);font-family:\'DM Mono\',monospace;white-space:nowrap">' + brl(v) + '</div>'; };
+      var linhaDet = function (nome, valor) { return '<div style="font-size:11px;color:var(--n500);line-height:1.5;white-space:nowrap">' + esc(nome) + (valor != null ? ' <span style="color:var(--n700);font-weight:600">' + brl(valor) + '</span>' : '') + '</div>'; };
+      var btnCel = function (onclick, rot, ic, primario, tit) { return '<button class="btn sm' + (primario ? ' primary' : '') + '" onclick="' + onclick + '" style="font-size:10px;min-width:92px;justify-content:center"' + (tit ? ' title="' + tit + '"' : '') + '><i class="ti ' + ic + '"></i> ' + rot + '</button>'; };
+
       var prevCel;
       if (x.previsto == null) {
-        prevCel = '<button class="btn sm primary" onclick="opClassifPrevisto(\'' + x.amarracaoId + '\')" style="font-size:10px"><i class="ti ti-plus"></i> Adicionar previsto</button>';
+        prevCel = '<div style="' + colCel + '">' + btnCel("opClassifPrevisto('" + x.amarracaoId + "')", 'Adicionar', 'ti-plus', true) + '</div>';
       } else {
-        prevCel = '<div style="font-size:10px;color:var(--n700);line-height:1.5">' + ((x.classificadoras || []).length ? x.classificadoras.map(function (n) { return '<div>' + esc(n) + '</div>'; }).join('') : '<div style="color:var(--n400)">sem classificadora</div>') + '</div>'
-          + '<div style="font-weight:800;margin-top:3px">' + brl(x.previsto) + '</div>'
-          + '<button class="btn sm" onclick="opClassifPrevisto(\'' + x.amarracaoId + '\')" style="font-size:10px;margin-top:4px" title="Editar classificadoras e previsto"><i class="ti ti-edit"></i> Editar</button>';
+        prevCel = '<div style="' + colCel + '">' + totCel(x.previsto)
+          + '<div>' + ((x.classificadoras || []).length ? x.classificadoras.map(function (n) { return linhaDet(n); }).join('') : linhaDet('sem classificadora')) + '</div>'
+          + btnCel("opClassifPrevisto('" + x.amarracaoId + "')", 'Editar', 'ti-edit', false, 'Editar classificadoras e previsto') + '</div>';
       }
 
-      // REALIZADO: valor por classificadora + total, com botão lançar
       var realCel;
       if (x.previsto == null) {
-        realCel = '<span style="font-size:10px;color:var(--n400)">lance o previsto primeiro</span>';
+        realCel = '<div style="' + colCel + '"><span style="font-size:11px;color:var(--n400)">aguardando o previsto</span></div>';
       } else {
-        realCel = (nomes.length > 1 || nPag ? '<div style="font-size:10px;color:var(--n700);line-height:1.5">' + nomes.map(function (n) { var pg = _classifPagoPor(x, n); return '<div>' + esc(n) + ' <span style="color:' + (pg ? 'var(--green)' : 'var(--n400)') + ';font-weight:700">' + (pg ? brl(pg) : '—') + '</span></div>'; }).join('') + '</div>' : '')
-          + '<div style="font-weight:800;margin-top:3px">' + brl(x.realizado || 0) + '</div>'
-          + '<div style="display:flex;gap:5px;justify-content:center;margin-top:4px">'
-          + '<button class="btn sm primary" onclick="opClassifPagar(\'' + x.amarracaoId + '\')" style="font-size:10px"><i class="ti ti-edit"></i> Realizado</button>'
-          + (nPag ? '<button class="btn sm" onclick="opClassifVerParcelas(\'' + x.amarracaoId + '\')" style="font-size:10px" title="Ver/excluir lançamentos"><i class="ti ti-list"></i></button>' : '')
-          + '</div>';
+        var semPag = !nPag;
+        realCel = '<div style="' + colCel + '">' + totCel(x.realizado || 0)
+          + '<div>' + (nomes.length ? nomes.map(function (n) { var pg = _classifPagoPor(x, n); return linhaDet(n, pg || 0); }).join('') : '') + '</div>'
+          + '<div style="display:flex;gap:6px;align-items:center">' + btnCel("opClassifPagar('" + x.amarracaoId + "')", semPag ? 'Lançar' : 'Editar', semPag ? 'ti-plus' : 'ti-edit', semPag, 'Lançar/editar o realizado por classificadora')
+          + (nPag ? '<button class="btn sm" onclick="opClassifVerParcelas(\'' + x.amarracaoId + '\')" style="font-size:10px" title="Ver/excluir lançamentos"><i class="ti ti-list"></i></button>' : '') + '</div></div>';
       }
 
       var st = x.previsto == null
@@ -20952,6 +20968,277 @@ if (typeof dashRender === 'function') dashRender();
   };
 
   console.log('%c[MODO·RIR] Logística › Cotação de Fretes ativa.', 'color:#1A4A2A;font-weight:bold');
+})();
+</script>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     LOGÍSTICA › Pagamento de Frete › FLUXO DE PROCESSOS: todos os CT-Es de cada nº de processo, com o peso
+     descarregado, a quebra/sobra, o valor BRUTO e o LÍQUIDO a pagar; PDF (Imprimir/Salvar) e envio por e-mail
+     — mesma lógica da Boleta (PDF em janela + Gmail/Outlook).
+     ==================================================================== -->
+<script>
+(function () {
+  'use strict';
+  var _grupos = [], _sel = null;
+  function esc(s) { return typeof rgEsc === 'function' ? rgEsc(s) : (s == null ? '' : String(s)); }
+  function brl(v) { return 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function ton(v) { return (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' t'; }
+  function kg(v) { return (Math.abs(Number(v) || 0)).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' kg'; }
+  function dbr(v) { return typeof _pgIsoToBR === 'function' ? _pgIsoToBR(v) : (v || ''); }
+  function norm(s) { return String(s || '').trim().toLowerCase(); }
+  var INP = 'font-size:12px;padding:8px 10px;border:1px solid var(--n100);border-radius:8px;box-sizing:border-box;width:100%';
+
+  // Valores do CT-e sempre calculados na hora (a descarga pode ter sido importada depois)
+  function valores(c) {
+    var vp = typeof _pgValoresPagar === 'function' ? _pgValoresPagar(c) : { bruto: Number(c.valorTotal) || 0, liquido: Number(c.valorTotal) || 0 };
+    var desconto = (vp.descFrete || 0) + (vp.descProduto || 0);
+    var st = !vp.temDescarga ? 'sem' : (!(vp.desc > 0) ? 'transito' : (vp.delta < 0 ? 'quebra' : (vp.delta > 0 ? 'sobra' : 'ok')));
+    return { vp: vp, bruto: vp.bruto || 0, liquido: vp.liquido || 0, desconto: desconto, st: st, desc: vp.desc || 0, orig: vp.orig || 0, delta: vp.delta || 0 };
+  }
+  function tonCte(c) { return typeof _pgTon === 'function' ? (_pgTon(c) || 0) : 0; }
+
+  function montar() {
+    var base = (typeof CTES !== 'undefined' ? CTES : []).filter(function (c) { return !c._retirado; });
+    var m = {};
+    base.forEach(function (c) {
+      var p = String(c._numProcesso || '').trim(), k = p || '__sem';
+      (m[k] = m[k] || { proc: p, lista: [] }).lista.push(c);
+    });
+    return Object.keys(m).map(function (k) {
+      var g = m[k], tn = 0, br = 0, lq = 0, ds = 0, dsKg = 0, dl = 0, ap = 0, emi = {}, dts = {}, comDesc = 0;
+      g.lista.forEach(function (c) {
+        var v = valores(c);
+        tn += tonCte(c); br += v.bruto; lq += v.liquido; ds += v.desconto;
+        if (v.st !== 'sem' && v.st !== 'transito') { comDesc++; dsKg += v.desc; dl += v.delta; }
+        if (c._aprovado) ap++;
+        if (c.emitente) emi[c.emitente] = 1;
+        if (c._dataPagamento) dts[c._dataPagamento] = 1;
+      });
+      g.ton = tn; g.bruto = br; g.liquido = lq; g.descontos = ds; g.descTon = dsKg / 1000; g.delta = dl; g.comDescarga = comDesc;
+      g.aprovados = ap; g.emitentes = Object.keys(emi); g.datas = Object.keys(dts).sort();
+      return g;
+    }).sort(function (a, b) {
+      if (!a.proc) return 1; if (!b.proc) return -1;
+      return b.proc.localeCompare(a.proc, 'pt-BR', { numeric: true });
+    });
+  }
+
+  window.pgProcRender = function () {
+    var host = document.getElementById('pg-proc-lista'); if (!host) return;
+    _grupos = montar();
+    var q = norm((document.getElementById('pg-proc-busca') || {}).value);
+    var op = document.getElementById('pg-proc-opcoes');
+    if (op) op.innerHTML = _grupos.filter(function (g) { return g.proc; }).map(function (g) { return '<option value="' + esc(g.proc) + '">'; }).join('');
+    var comProc = _grupos.filter(function (g) { return g.proc; });
+    var semProc = _grupos.filter(function (g) { return !g.proc; })[0];
+    var vis = _grupos.filter(function (g) { return !q || (g.proc && norm(g.proc).indexOf(q) >= 0) || (!g.proc && 'sem processo'.indexOf(q) >= 0); });
+    var cnt = document.getElementById('pg-proc-count');
+    if (cnt) cnt.textContent = comProc.length + ' processo(s)' + (semProc ? ' · ' + semProc.lista.length + ' CT-e(s) sem processo' : '');
+    if (q) { var ex = comProc.filter(function (g) { return norm(g.proc) === q; })[0]; if (ex) _sel = ex.proc; else if (vis.length === 1 && vis[0].proc) _sel = vis[0].proc; }
+    if (_sel != null && !_grupos.some(function (g) { return g.proc === _sel; })) _sel = null;
+
+    if (!_grupos.length) { host.innerHTML = '<div style="padding:26px;text-align:center;color:var(--n500);font-size:12px">Nenhum CT-e importado ainda.</div>'; document.getElementById('pg-proc-detalhe').innerHTML = ''; return; }
+    var th = function (t, al) { return '<th style="text-align:' + (al || 'left') + ';padding:8px 12px;font-weight:700;white-space:nowrap">' + t + '</th>'; };
+    var LIM = q ? 200 : 60;
+    host.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="color:var(--n500);font-size:9px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--n100)">'
+      + th('Nº do processo') + th('Transportadora(s)') + th('CT-Es', 'center') + th('Peso carga', 'right') + th('Descarregado', 'right') + th('Valor bruto', 'right') + th('Líquido a pagar', 'right') + th('Aprovados', 'center') + th('Pagamento', 'center') + th('', 'center') + '</tr></thead><tbody>'
+      + (vis.length ? vis.slice(0, LIM).map(function (g) {
+        var idx = _grupos.indexOf(g), ativo = _sel === g.proc && g.proc;
+        var emi = g.emitentes.length > 2 ? esc(g.emitentes[0]) + ' <span style="color:var(--n500)">+' + (g.emitentes.length - 1) + '</span>' : g.emitentes.map(esc).join(' · ');
+        var pg = g.datas.length ? (g.datas.length > 1 ? dbr(g.datas[0]) + ' <span style="color:var(--n500)">+' + (g.datas.length - 1) + '</span>' : dbr(g.datas[0])) : '<span style="color:var(--n300)">—</span>';
+        var desc = g.comDescarga ? ton(g.descTon) + '<div style="font-size:9px;color:' + (g.delta < 0 ? '#C0392B' : 'var(--n500)') + '">' + g.comDescarga + '/' + g.lista.length + ' descarregados' + (g.delta ? ' · ' + (g.delta < 0 ? 'quebra ' : 'sobra ') + kg(g.delta) : '') + '</div>' : '<span style="color:var(--n300)">sem descarga</span>';
+        return '<tr style="border-top:1px solid var(--n50);' + (ativo ? 'background:#F0FAF4;' : '') + (g.proc ? 'cursor:pointer' : 'opacity:.85') + '" ' + (g.proc ? 'onclick="pgProcAbrir(' + idx + ')"' : '') + '>'
+          + '<td style="padding:9px 12px;font-weight:800;font-family:\'DM Mono\',monospace">' + (g.proc ? esc(g.proc) : '<span style="font-weight:600;color:var(--n500);font-family:inherit">(sem nº de processo)</span>') + '</td>'
+          + '<td style="padding:9px 12px;color:var(--n700)">' + (emi || '—') + '</td>'
+          + '<td style="padding:9px 12px;text-align:center;font-weight:700">' + g.lista.length + '</td>'
+          + '<td style="padding:9px 12px;text-align:right;white-space:nowrap">' + (g.ton ? ton(g.ton) : '—') + '</td>'
+          + '<td style="padding:9px 12px;text-align:right;white-space:nowrap">' + desc + '</td>'
+          + '<td style="padding:9px 12px;text-align:right;white-space:nowrap">' + brl(g.bruto) + '</td>'
+          + '<td style="padding:9px 12px;text-align:right;font-weight:800;white-space:nowrap">' + brl(g.liquido) + (g.descontos > 0 ? '<div style="font-size:9px;font-weight:600;color:#C0392B">− ' + brl(g.descontos) + ' de quebra</div>' : '') + '</td>'
+          + '<td style="padding:9px 12px;text-align:center">' + g.aprovados + '/' + g.lista.length + '</td>'
+          + '<td style="padding:9px 12px;text-align:center;white-space:nowrap">' + pg + '</td>'
+          + '<td style="padding:9px 12px;text-align:center">' + (g.proc ? '<button class="btn sm" style="font-size:10px">' + (ativo ? 'Aberto' : 'Abrir') + '</button>' : '') + '</td></tr>';
+      }).join('') + (vis.length > LIM ? '<tr><td colspan="10" style="text-align:center;padding:8px;color:var(--n500);font-size:11px">Mostrando ' + LIM + ' de ' + vis.length + ' — pesquise o nº do processo para filtrar.</td></tr>' : '')
+        : '<tr><td colspan="10" style="text-align:center;padding:22px;color:var(--n500)">Nenhum processo com “' + esc(q) + '”.</td></tr>')
+      + '</tbody></table></div>';
+    renderDetalhe();
+  };
+
+  window.pgProcBusca = function () { _sel = null; window.pgProcRender(); };
+  window.pgProcAbrir = function (idx) { var g = _grupos[idx]; if (!g || !g.proc) return; _sel = (_sel === g.proc) ? null : g.proc; window.pgProcRender(); if (_sel) { var d = document.getElementById('pg-proc-detalhe'); if (d && d.scrollIntoView) d.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } };
+  window.pgProcFechar = function () { _sel = null; window.pgProcRender(); };
+  function grupoSel() { return _grupos.filter(function (g) { return g.proc === _sel && g.proc; })[0]; }
+  function linhasDetalhe(g) {
+    return g.lista.slice().sort(function (a, b) { return String(a.dtEmissao).localeCompare(String(b.dtEmissao)) || String(a.numDoc).localeCompare(String(b.numDoc), 'pt-BR', { numeric: true }); });
+  }
+  // Texto/estilo do peso descarregado e da quebra/sobra de um CT-e
+  function descTxt(v) {
+    if (v.st === 'sem') return '<span style="color:var(--n300)">sem descarga</span>';
+    if (v.st === 'transito') return '<span style="color:var(--blue)">em trânsito</span>';
+    return ton(v.desc / 1000);
+  }
+  function deltaTxt(v) {
+    if (v.st === 'quebra') return '<span style="color:#C0392B;font-weight:700">quebra ' + kg(v.delta) + '</span>';
+    if (v.st === 'sobra') return '<span style="color:var(--blue);font-weight:700">sobra ' + kg(v.delta) + '</span>';
+    if (v.st === 'ok') return '<span style="color:var(--green)">exato</span>';
+    return '<span style="color:var(--n300)">—</span>';
+  }
+
+  function renderDetalhe() {
+    var box = document.getElementById('pg-proc-detalhe'); if (!box) return;
+    var g = grupoSel();
+    if (!g) { box.innerHTML = ''; return; }
+    var th = function (t, al) { return '<th style="text-align:' + (al || 'left') + ';padding:7px 10px;font-weight:700;white-space:nowrap">' + t + '</th>'; };
+    var rows = linhasDetalhe(g).map(function (c) {
+      var v = valores(c);
+      return '<tr style="border-top:1px solid var(--n50)">'
+        + '<td style="padding:7px 10px;white-space:nowrap;font-weight:700">' + esc(c.numDoc) + (c.serie ? '<span style="color:var(--n500);font-weight:400"> / ' + esc(c.serie) + '</span>' : '') + '</td>'
+        + '<td style="padding:7px 10px;white-space:nowrap">' + esc(c.dtEmissao) + '</td>'
+        + '<td style="padding:7px 10px">' + esc(c.emitente) + '</td>'
+        + '<td style="padding:7px 10px;white-space:nowrap" class="mono">' + esc(c.nf || '—') + '</td>'
+        + '<td style="padding:7px 10px;white-space:nowrap">' + esc(c.produtoCarga || '—') + '</td>'
+        + '<td style="padding:7px 10px;white-space:nowrap;font-size:11px">' + esc(c.ctrCompra || '—') + ' → ' + esc(c.ctrVenda || '—') + '</td>'
+        + '<td style="padding:7px 10px;text-align:right;white-space:nowrap">' + (tonCte(c) ? ton(tonCte(c)) : '—') + '</td>'
+        + '<td style="padding:7px 10px;text-align:right;white-space:nowrap">' + descTxt(v) + '</td>'
+        + '<td style="padding:7px 10px;text-align:right;white-space:nowrap;font-size:11px">' + deltaTxt(v) + '</td>'
+        + '<td style="padding:7px 10px;text-align:right;white-space:nowrap">' + brl(v.bruto) + '</td>'
+        + '<td style="padding:7px 10px;text-align:right;white-space:nowrap;color:' + (v.desconto > 0 ? '#C0392B' : 'var(--n300)') + '">' + (v.desconto > 0 ? '− ' + brl(v.desconto) : '—') + '</td>'
+        + '<td style="padding:7px 10px;text-align:right;font-weight:800;white-space:nowrap">' + brl(v.liquido) + '</td>'
+        + '<td style="padding:7px 10px;text-align:center;white-space:nowrap">' + (c._dataPagamento ? dbr(c._dataPagamento) : '<span style="color:var(--n300)">—</span>') + '</td>'
+        + '<td style="padding:7px 10px;text-align:center">' + (c._aprovado ? '<span class="chip c-green" style="font-size:9px">Aprovado</span>' : '<span style="color:var(--n300)">—</span>') + '</td></tr>';
+    }).join('');
+    var kd = g.comDescarga ? ton(g.descTon) + ' (' + g.comDescarga + '/' + g.lista.length + ')' : 'sem descarga';
+    box.innerHTML = '<div style="border-top:2px solid var(--n100);margin-top:6px;padding:14px 16px">'
+      + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">'
+      + '<div style="font-size:14px;font-weight:800;color:var(--dark)"><i class="ti ti-folder-open" style="color:var(--green)"></i> Processo <span style="font-family:\'DM Mono\',monospace">' + esc(g.proc) + '</span></div>'
+      + '<span style="font-size:11px;color:var(--n500)">' + g.lista.length + ' CT-e(s) · carga ' + ton(g.ton) + ' · descarregado ' + kd + ' · bruto ' + brl(g.bruto) + ' · <b style="color:var(--dark)">líquido ' + brl(g.liquido) + '</b></span>'
+      + '<div style="margin-left:auto;display:flex;gap:6px"><button class="btn sm" onclick="pgProcPDF()" style="color:var(--green)"><i class="ti ti-file-download"></i> PDF</button><button class="btn sm" onclick="pgProcEmail()" style="color:var(--blue)"><i class="ti ti-mail"></i> Enviar por e-mail</button><button class="btn sm" onclick="pgProcFechar()"><i class="ti ti-x"></i></button></div></div>'
+      + '<div style="overflow-x:auto;border:1px solid var(--n100);border-radius:10px"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--n50);color:var(--n700);font-size:9px;text-transform:uppercase">'
+      + th('CT-e / Série') + th('Emissão') + th('Transportadora') + th('NF') + th('Produto') + th('Contrato compra → venda') + th('Peso carga', 'right') + th('Descarregado', 'right') + th('Quebra / sobra', 'right') + th('Valor bruto', 'right') + th('Desconto', 'right') + th('Líquido a pagar', 'right') + th('Pagamento', 'center') + th('Status', 'center')
+      + '</tr></thead><tbody>' + rows + '</tbody><tfoot><tr style="border-top:2px solid var(--n300);background:var(--n50);font-weight:800"><td colspan="6" style="padding:8px 10px">Total do processo</td><td style="padding:8px 10px;text-align:right;white-space:nowrap">' + ton(g.ton) + '</td><td style="padding:8px 10px;text-align:right;white-space:nowrap">' + (g.comDescarga ? ton(g.descTon) : '—') + '</td><td style="padding:8px 10px;text-align:right;white-space:nowrap;font-size:11px">' + (g.comDescarga && g.delta ? (g.delta < 0 ? 'quebra ' : 'sobra ') + kg(g.delta) : '') + '</td><td style="padding:8px 10px;text-align:right;white-space:nowrap">' + brl(g.bruto) + '</td><td style="padding:8px 10px;text-align:right;white-space:nowrap;color:#C0392B">' + (g.descontos > 0 ? '− ' + brl(g.descontos) : '—') + '</td><td style="padding:8px 10px;text-align:right;white-space:nowrap">' + brl(g.liquido) + '</td><td colspan="2"></td></tr></tfoot></table></div></div>';
+  }
+
+  // ───────── PDF (janela de impressão: "Salvar como PDF"), igual à boleta ─────────
+  function plain(s) { return String(s).replace(/<[^>]*>/g, ''); }
+  function htmlPDF(g) {
+    var user = (typeof usuarioLogado !== 'undefined' && usuarioLogado && usuarioLogado.nome) ? usuarioLogado.nome : 'Sistema';
+    var agora = new Date().toLocaleString('pt-BR');
+    var linhas = linhasDetalhe(g).map(function (c, i) {
+      var v = valores(c);
+      return '<tr><td>' + (i + 1) + '</td><td><b>' + esc(c.numDoc) + '</b>' + (c.serie ? ' / ' + esc(c.serie) : '') + '</td><td>' + esc(c.dtEmissao) + '</td><td>' + esc(c.emitente) + '</td><td>' + esc(c.nf || '—') + '</td><td>' + esc(c.produtoCarga || '—') + '</td><td>' + esc(c.ctrCompra || '—') + ' → ' + esc(c.ctrVenda || '—') + '</td>'
+        + '<td class="n">' + (tonCte(c) ? ton(tonCte(c)) : '—') + '</td><td class="n">' + plain(descTxt(v)) + '</td><td class="n">' + plain(deltaTxt(v)) + '</td>'
+        + '<td class="n">' + brl(v.bruto) + '</td><td class="n">' + (v.desconto > 0 ? '− ' + brl(v.desconto) : '—') + '</td><td class="n"><b>' + brl(v.liquido) + '</b></td><td>' + (c._dataPagamento ? dbr(c._dataPagamento) : '—') + '</td></tr>';
+    }).join('');
+    var kd = g.comDescarga ? ton(g.descTon) + ' <small>(' + g.comDescarga + ' de ' + g.lista.length + ' CT-es)</small>' : 'sem descarga';
+    var q = g.comDescarga && g.delta ? (g.delta < 0 ? 'quebra ' : 'sobra ') + kg(g.delta) : '—';
+    return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Processo ' + esc(g.proc) + '</title><style>'
+      + '@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:10px;color:#1A1F1C;background:#fff;padding:18px}'
+      + '.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1C3527;padding-bottom:10px;margin-bottom:12px}.logo{font-size:18px;font-weight:900;color:#1C3527}.logo span{color:#D4960A}'
+      + 'h1{font-size:16px;color:#1C3527}.sub{color:#6B7A70;font-size:10px;margin-top:2px}.res{display:flex;gap:8px;margin-bottom:12px}.k{flex:1;border:1px solid #E1E8E3;border-radius:6px;padding:7px 9px}.k b{display:block;font-size:13px;margin-top:2px}.k b small{font-size:9px;font-weight:400;color:#6B7A70}.k span{font-size:8.5px;color:#6B7A70;text-transform:uppercase}'
+      + 'table{width:100%;border-collapse:collapse}th{background:#1C3527;color:#fff;font-size:8px;text-transform:uppercase;text-align:left;padding:6px 5px}td{padding:5px 5px;border-bottom:1px solid #E8EEE9;vertical-align:top}td.n,th.n{text-align:right;white-space:nowrap}tfoot td{border-top:2px solid #1C3527;font-weight:700;background:#F5F8F6}.rod{margin-top:14px;font-size:9px;color:#6B7A70;display:flex;justify-content:space-between}'
+      + '@media print{.no-print{display:none!important}body{padding:0}}</style></head><body>'
+      + '<div class="hdr"><div><div class="logo">MODO <span>· RIR</span></div><h1>Processo ' + esc(g.proc) + ' — CT-Es para pagamento</h1><div class="sub">Gerado em ' + agora + ' por ' + esc(user) + '</div></div></div>'
+      + '<div class="res"><div class="k"><span>CT-Es</span><b>' + g.lista.length + '</b></div><div class="k"><span>Transportadora(s)</span><b style="font-size:10.5px">' + (g.emitentes.map(esc).join(' · ') || '—') + '</b></div><div class="k"><span>Peso carga</span><b>' + ton(g.ton) + '</b></div><div class="k"><span>Descarregado</span><b>' + kd + '</b></div><div class="k"><span>Quebra / sobra</span><b style="font-size:11px">' + q + '</b></div><div class="k"><span>Valor bruto</span><b>' + brl(g.bruto) + '</b></div><div class="k"><span>Líquido a pagar</span><b>' + brl(g.liquido) + '</b></div></div>'
+      + '<table><thead><tr><th>#</th><th>CT-e / Série</th><th>Emissão</th><th>Transportadora</th><th>NF</th><th>Produto</th><th>Contrato compra → venda</th><th class="n">Peso carga</th><th class="n">Descarregado</th><th class="n">Quebra / sobra</th><th class="n">Valor bruto</th><th class="n">Desconto</th><th class="n">Líquido a pagar</th><th>Pagamento</th></tr></thead><tbody>' + linhas + '</tbody>'
+      + '<tfoot><tr><td colspan="7">TOTAL</td><td class="n">' + ton(g.ton) + '</td><td class="n">' + (g.comDescarga ? ton(g.descTon) : '—') + '</td><td class="n">' + q + '</td><td class="n">' + brl(g.bruto) + '</td><td class="n">' + (g.descontos > 0 ? '− ' + brl(g.descontos) : '—') + '</td><td class="n">' + brl(g.liquido) + '</td><td></td></tr></tfoot></table>'
+      + '<div class="rod"><span>MODO · RIR — Sistema de Gestão</span><span>Processo ' + esc(g.proc) + '</span></div></body></html>';
+  }
+  window.pgProcPDF = function () {
+    var g = grupoSel(); if (!g) { toast('Abra um processo primeiro', 'ti-alert-triangle'); return false; }
+    var win = window.open('', '_blank', 'width=1100,height=800');
+    if (!win) { toast('Permita pop-ups para gerar o PDF', 'ti-alert-triangle'); return false; }
+    win.document.write(htmlPDF(g)); win.document.close(); win.focus();
+    setTimeout(function () {
+      var bar = win.document.createElement('div');
+      bar.className = 'no-print';
+      bar.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1C3527;padding:8px 16px;display:flex;gap:8px;align-items:center;z-index:999';
+      bar.innerHTML = '<span style="color:#F5C842;font-weight:700;font-family:Arial;font-size:13px">MODO · RIR</span><span style="color:rgba(255,255,255,.6);font-size:11px;flex:1;font-family:Arial">Processo ' + esc(g.proc) + ' — salve como PDF e anexe no e-mail</span>'
+        + '<button onclick="window.print()" style="background:#2E7D4F;color:#fff;border:none;padding:6px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">🖨 Salvar como PDF</button>'
+        + '<button onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px">✕ Fechar</button>';
+      win.document.body.style.paddingTop = '52px';
+      win.document.body.insertBefore(bar, win.document.body.firstChild);
+    }, 200);
+    return true;
+  };
+
+  // ───────── E-mail (mesmo painel da boleta: assunto + corpo prontos, Gmail/Outlook, copiar texto) ─────────
+  function corpoEmail(g, msg) {
+    var l = [];
+    if (msg) { l.push(msg, ''); }
+    l.push('PROCESSO ' + g.proc, 'CT-Es: ' + g.lista.length + ' · Peso carga: ' + ton(g.ton) + ' · Descarregado: ' + (g.comDescarga ? ton(g.descTon) : 'sem descarga'),
+      'Valor bruto: ' + brl(g.bruto) + (g.descontos > 0 ? ' · Descontos (quebra): − ' + brl(g.descontos) : '') + ' · Líquido a pagar: ' + brl(g.liquido), 'Transportadora(s): ' + (g.emitentes.join(' · ') || '—'), '');
+    linhasDetalhe(g).slice(0, 40).forEach(function (c) {
+      var v = valores(c);
+      l.push('• CT-e ' + c.numDoc + (c.serie ? '/' + c.serie : '') + ' · ' + (c.emitente || '') + ' · NF ' + (c.nf || '—') + ' · carga ' + (tonCte(c) ? ton(tonCte(c)) : '—') + ' · desc. ' + (v.st === 'sem' ? 'sem descarga' : v.st === 'transito' ? 'em trânsito' : ton(v.desc / 1000)) + ' · bruto ' + brl(v.bruto) + ' · líquido ' + brl(v.liquido));
+    });
+    if (g.lista.length > 40) l.push('… e mais ' + (g.lista.length - 40) + ' CT-e(s) (veja o PDF anexo).');
+    l.push('', '(PDF do processo em anexo)', '', 'MODO · RIR — Sistema de Gestão');
+    return l.join('\n');
+  }
+  var LS_EMAIL = 'modorir_proc_emails';
+  function emailsSalvos() { try { return localStorage.getItem(LS_EMAIL) || ''; } catch (e) { return ''; } }
+  function validar(lista) { var ok = []; (lista || '').split(/[,;\s]+/).forEach(function (e) { e = e.trim(); if (e) ok.push(e); }); return ok; }
+  function emailValido(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+  window.pgProcEmail = function () {
+    var g = grupoSel(); if (!g) { toast('Abra um processo primeiro', 'ti-alert-triangle'); return; }
+    var old = document.getElementById('pgp-email-bd'); if (old) old.remove();
+    var bd = document.createElement('div');
+    bd.id = 'pgp-email-bd';
+    bd.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+    var assunto = '[MODO·RIR] Processo ' + g.proc + ' — ' + g.lista.length + ' CT-e(s) · ' + brl(g.liquido);
+    bd.innerHTML = '<div style="background:#fff;border-radius:14px;width:560px;max-width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+      + '<div style="background:#1C3527;padding:14px 18px;display:flex;align-items:center;gap:12px"><i class="ti ti-mail-forward" style="color:#D4960A;font-size:20px"></i><div style="flex:1"><div style="font-size:14px;font-weight:700;color:#fff">Enviar processo ' + esc(g.proc) + '</div><div style="font-size:10px;color:rgba(168,213,181,.6)">' + g.lista.length + ' CT-e(s) · líquido ' + brl(g.liquido) + '</div></div><button type="button" onclick="document.getElementById(\'pgp-email-bd\').remove()" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.5);font-size:24px;line-height:1">&times;</button></div>'
+      + '<div style="padding:16px 18px">'
+      + '<label style="font-size:10px;font-weight:700;color:var(--n700);text-transform:uppercase">Para (um ou mais e-mails, separados por vírgula)</label><input id="pgp-para" type="text" value="' + esc(emailsSalvos()) + '" placeholder="nome@empresa.com.br, outro@empresa.com.br" style="' + INP + ';margin:4px 0 10px">'
+      + '<label style="font-size:10px;font-weight:700;color:var(--n700);text-transform:uppercase">Assunto</label><input id="pgp-assunto" type="text" value="' + esc(assunto) + '" style="' + INP + ';margin:4px 0 10px">'
+      + '<label style="font-size:10px;font-weight:700;color:var(--n700);text-transform:uppercase">Mensagem (opcional — aparece no começo do e-mail)</label><textarea id="pgp-msg" rows="3" placeholder="Ex.: Segue o relatório dos CT-Es do processo para pagamento." style="' + INP + ';margin:4px 0 12px;font-family:inherit;resize:vertical"></textarea>'
+      + '<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;font-size:11px;color:#1E3A8A;margin-bottom:12px"><b>Como enviar com o PDF:</b> 1) clique em <b>Salvar PDF</b> e salve o arquivo; 2) clique em <b>Abrir no Gmail</b> (ou Outlook) — o e-mail já abre preenchido; 3) anexe o PDF e envie. (O navegador não anexa arquivos sozinho.)</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn sm primary" onclick="pgProcPDF()" style="flex:1;justify-content:center"><i class="ti ti-file-download"></i> 1. Salvar PDF</button>'
+      + '<button type="button" class="btn sm" onclick="pgProcAbrirMail(\'gmail\')" style="flex:1;justify-content:center;background:#EA4335;color:#fff;border-color:#EA4335"><i class="ti ti-brand-gmail"></i> 2. Abrir no Gmail</button>'
+      + '<button type="button" class="btn sm" onclick="pgProcAbrirMail(\'mailto\')" style="flex:1;justify-content:center"><i class="ti ti-mail"></i> Outlook / padrão</button></div>'
+      + '<div style="display:flex;gap:8px;margin-top:8px"><button type="button" class="btn sm" onclick="pgProcCopiar()" style="flex:1;justify-content:center"><i class="ti ti-copy"></i> Copiar texto do e-mail</button><button type="button" class="btn sm" onclick="document.getElementById(\'pgp-email-bd\').remove()">Fechar</button></div>'
+      + '</div></div>';
+    bd.addEventListener('click', function (e) { if (e.target === bd) bd.remove(); });
+    document.body.appendChild(bd);
+  };
+  function dadosEmail() {
+    var g = grupoSel(); if (!g) return null;
+    var para = validar((document.getElementById('pgp-para') || {}).value);
+    var ruins = para.filter(function (e) { return !emailValido(e); });
+    return { g: g, para: para, ruins: ruins, assunto: (document.getElementById('pgp-assunto') || {}).value || '', corpo: corpoEmail(g, ((document.getElementById('pgp-msg') || {}).value || '').trim()) };
+  }
+  window.pgProcAbrirMail = function (tipo) {
+    var d = dadosEmail(); if (!d) return;
+    if (d.ruins.length) { toast('E-mail inválido: ' + d.ruins[0], 'ti-alert-triangle'); return; }
+    try { if (d.para.length) localStorage.setItem(LS_EMAIL, d.para.join(', ')); } catch (e) {}
+    var url;
+    if (tipo === 'gmail') url = 'https://mail.google.com/mail/u/0/?view=cm&fs=1&to=' + encodeURIComponent(d.para.join(',')) + '&su=' + encodeURIComponent(d.assunto) + '&body=' + encodeURIComponent(d.corpo);
+    else url = 'mailto:' + d.para.join(',') + '?subject=' + encodeURIComponent(d.assunto) + '&body=' + encodeURIComponent(d.corpo.slice(0, 1700));
+    if (tipo === 'mailto') window.location.href = url;
+    else { var w = window.open(url, '_blank'); if (!w) { toast('Permita pop-ups para abrir o Gmail', 'ti-alert-triangle'); return; } }
+    toast('Lembre de anexar o PDF salvo antes de enviar.', 'ti-paperclip');
+  };
+  window.pgProcCopiar = function () {
+    var d = dadosEmail(); if (!d) return;
+    var txt = 'Para: ' + d.para.join(', ') + '\nAssunto: ' + d.assunto + '\n\n' + d.corpo;
+    var ok = function () { toast('Texto do e-mail copiado.', 'ti-check'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, function () { toast('Não consegui copiar automaticamente.', 'ti-alert-triangle'); });
+    else { var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); ok(); } catch (e) {} ta.remove(); }
+  };
+
+  // Atualiza o fluxo de processos sempre que a tabela de CT-Es, o relatório de descarga ou o nº do processo mudam
+  var _frDraw = window.pgFreteRender;
+  window.pgFreteRender = function () { var out = typeof _frDraw === 'function' ? _frDraw.apply(this, arguments) : undefined; try { window.pgProcRender(); } catch (e) { console.error('pgProcRender', e); } return out; };
+  var _descDraw = window.pgDescRender;
+  if (typeof _descDraw === 'function') {
+    window.pgDescRender = function () { var out = _descDraw.apply(this, arguments); setTimeout(function () { try { window.pgProcRender(); } catch (e) {} }, 60); return out; };
+  }
+  var _setCampo = window.pgSetCampo;
+  if (typeof _setCampo === 'function') {
+    window.pgSetCampo = function (chave, campo) { var out = _setCampo.apply(this, arguments); if (campo === '_numProcesso' || campo === '_dataPagamento' || campo === '_aprovado') setTimeout(function () { try { window.pgProcRender(); } catch (e) {} }, 60); return out; };
+  }
+  console.log('%c[MODO·RIR] Pagamento de Frete › Fluxo de processos (peso descarregado, líquido, PDF e e-mail) ativo.', 'color:#1A4A2A;font-weight:bold');
 })();
 </script>
 </body>

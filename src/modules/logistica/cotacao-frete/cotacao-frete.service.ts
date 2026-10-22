@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { CotacaoFrete, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';
+import { veiculoCanonico } from './veiculo';
 import { interpretarCotacoes, ResultadoInterpretacao, testarChaveIa } from './cotacao-frete-parser';
 import {
   CotacaoFreteResponseDto,
@@ -83,12 +84,14 @@ export class CotacaoFreteService {
       where: { dataCotacao: { in: Array.from(new Set(itens.map((i) => i.dataCotacao))) } },
     });
     const chave = (t: string | null | undefined, o: string, d: string, v: number, u: string, dt: string, ve?: string | null) => [norm(t), norm(o), norm(d), norm(ve), v.toFixed(2), u, dt].join('|');
-    const vistos = new Set(existentes.map((e) => chave(e.transportadora, e.origem, e.destino, Number(e.valor), e.unidade, e.dataCotacao, e.veiculo)));
+    const vistos = new Set(existentes.map((e) => chave(e.transportadora, e.origem, e.destino, Number(e.valor), e.unidade, e.dataCotacao, veiculoCanonico(e.veiculo))));
     const novas: Prisma.CotacaoFreteCreateManyInput[] = [];
     let duplicadas = 0;
     for (const i of itens) {
       const unidade = /sc/i.test(i.unidade ?? '') ? 'R$/sc' : 'R$/t';
-      const k = chave(i.transportadora, i.origem, i.destino, Number(i.valor), unidade, i.dataCotacao, i.veiculo);
+      const veic = veiculoCanonico(i.veiculo);
+      const obsVeic = i.veiculo?.trim() && veic && norm(i.veiculo) !== norm(veic) && !(i.observacao ?? '').includes(i.veiculo) ? `veículo: ${i.veiculo.trim()}` : '';
+      const k = chave(i.transportadora, i.origem, i.destino, Number(i.valor), unidade, i.dataCotacao, veic);
       if (vistos.has(k)) {
         duplicadas++;
         continue;
@@ -100,11 +103,11 @@ export class CotacaoFreteService {
         origem: titulo(i.origem),
         destino: titulo(i.destino),
         produto: i.produto?.trim() || null,
-        veiculo: i.veiculo?.trim() ? titulo(i.veiculo) : null,
+        veiculo: veic,
         valor: i.valor,
         unidade,
         dataCotacao: i.dataCotacao,
-        observacao: i.observacao?.trim() || null,
+        observacao: [i.observacao?.trim(), obsVeic].filter(Boolean).join(' · ') || null,
         textoOrigem: i.textoOrigem?.slice(0, 2000) || null,
         createdBy: usuario,
       });
@@ -133,8 +136,28 @@ export class CotacaoFreteService {
   /** Frete VIGENTE: a cotação mais recente de cada transportadora em cada rota, com variação vs a anterior. */
   async vigentes(): Promise<CotacaoVigenteDto[]> {
     const rows = await this.prisma.cotacaoFrete.findMany({ orderBy: [{ dataCotacao: 'desc' }, { createdAt: 'desc' }] });
-    const porChave = new Map<string, Row[]>();
+    // Por rota: se só existe UMA família de veículo (ou UM produto) entre as cotações, a cotação que veio sem essa
+    // informação é entendida como sendo dele — assim "Bitrem" substitui "Bitrem Graneleiro" e vice-versa.
+    const rota = (r: Row) => [norm(r.origem), norm(r.destino), r.unidade].join('|');
+    const veics = new Map<string, Set<string>>();
+    const prods = new Map<string, Set<string>>();
     for (const r of rows) {
+      const v = veiculoCanonico(r.veiculo);
+      if (v) (veics.get(rota(r)) ?? veics.set(rota(r), new Set()).get(rota(r))!).add(v);
+      if (r.produto) (prods.get(rota(r)) ?? prods.set(rota(r), new Set()).get(rota(r))!).add(norm(r.produto));
+    }
+    const efetivo = (r: Row): Row => {
+      let veic = veiculoCanonico(r.veiculo);
+      const vs = veics.get(rota(r));
+      if (!veic && vs?.size === 1) veic = [...vs][0];
+      let prod = r.produto;
+      const ps = prods.get(rota(r));
+      if (!prod && ps?.size === 1) prod = [...ps][0];
+      return { ...r, veiculo: veic, produto: prod };
+    };
+    const porChave = new Map<string, Row[]>();
+    for (const r0 of rows) {
+      const r = efetivo(r0);
       const k = [norm(r.transportadora), norm(r.origem), norm(r.destino), norm(r.produto), norm(r.veiculo), r.unidade].join('|');
       (porChave.get(k) ?? porChave.set(k, []).get(k)!).push(r);
     }

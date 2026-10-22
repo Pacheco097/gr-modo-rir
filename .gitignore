@@ -12,3 +12,4 @@ backups/
 Boleta_*.html
 *.bak
 .claude/
+.Rhistory

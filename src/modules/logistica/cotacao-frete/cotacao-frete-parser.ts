@@ -8,6 +8,7 @@
  */
 import { Logger } from '@nestjs/common';
 import { acharCidades, canonicaLugar, fmtCidade } from './cidades';
+import { veiculoCanonico } from './veiculo';
 
 export interface CotacaoSugerida {
   grupo?: string;
@@ -481,6 +482,11 @@ export function interpretarPorRegras(texto: string, grupo?: string, dataPadrao?:
   for (const it of itens) {
     if (it.origem !== '(informar)') it.origem = canonicaLugar(it.origem);
     it.destino = canonicaLugar(it.destino);
+    if (it.veiculo) {
+      const canon = veiculoCanonico(it.veiculo);
+      if (canon && canon !== it.veiculo) it.observacao = [it.observacao, 'veículo: ' + it.veiculo].filter(Boolean).join(' · ');
+      it.veiculo = canon ?? undefined;
+    }
   }
   return { fonte: 'regras', itens, avisos, naoLidas: naoLidas.slice(0, 15) };
 }
