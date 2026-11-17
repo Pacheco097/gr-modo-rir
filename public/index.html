@@ -2277,7 +2277,7 @@ body, body *:not(i):not([class*="ti-"]):not(.ti){font-family:'Inter',sans-serif 
         <div class="card">
           <div class="card-head">
             <div class="card-title"><i class="ti ti-users-group"></i>Usuários do Sistema</div>
-            <input type="text" placeholder="Buscar usuário..." style="padding:5px 10px;border:1px solid var(--n200);border-radius:6px;font-size:11px;outline:none;width:160px">
+            <input type="text" id="usuarios-busca" placeholder="Buscar usuário..." style="padding:5px 10px;border:1px solid var(--n200);border-radius:6px;font-size:11px;outline:none;width:160px">
           </div>
           <table>
             <thead><tr>
@@ -4707,14 +4707,14 @@ function mostrarLogin() {
         </div>
         <div style="margin-bottom:12px">
           <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px">E-mail</label>
-          <input type="text" id="login-user" value="admin@modorir.com.br" placeholder="seu@email.com"
+          <input type="text" id="login-user" value="" placeholder="seu@email.com" autocomplete="username"
             style="width:100%;padding:10px 12px;border:1.5px solid #D1D5DB;border-radius:8px;font-size:13px;outline:none;font-family:inherit"
             onfocus="this.style.borderColor='#2E7D4F'" onblur="this.style.borderColor='#D1D5DB'"
             onkeydown="if(event.key==='Enter')fazerLogin()">
         </div>
         <div style="margin-bottom:20px">
           <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px">Senha</label>
-          <input type="password" id="login-pass" value="admin123" placeholder="Senha"
+          <input type="password" id="login-pass" value="" placeholder="Senha" autocomplete="current-password"
             style="width:100%;padding:10px 12px;border:1.5px solid #D1D5DB;border-radius:8px;font-size:13px;outline:none;font-family:inherit"
             onfocus="this.style.borderColor='#2E7D4F'" onblur="this.style.borderColor='#D1D5DB'"
             onkeydown="if(event.key==='Enter')fazerLogin()">
@@ -4725,9 +4725,6 @@ function mostrarLogin() {
           Entrar no Sistema
         </button>
         <div id="login-erro" style="margin-top:10px;color:#C0392B;font-size:11px;text-align:center;display:none"></div>
-        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #F3F4F6;font-size:10px;color:#9CA3AF;text-align:center">
-          Admin padrão: <strong>admin@modorir.com.br</strong> / <strong>admin123</strong>
-        </div>
       </div>`;
     document.body.appendChild(overlay);
   }
@@ -14692,23 +14689,212 @@ if (typeof dashRender === 'function') dashRender();
         return;
       }
       var j = await r.json();
-      tbody.innerHTML = (j.data || []).map(function (u) {
-        var chip = PERFIL_CHIP[u.perfil] || 'c-gray';
-        var label = PERFIL_LABEL[u.perfil] || u.perfil;
-        return '<tr>' +
-          '<td style="font-weight:600">' + u.nome + '</td>' +
-          '<td><span class="mono">' + u.email.split('@')[0] + '</span> · ' + u.email + '</td>' +
-          '<td><span class="chip ' + chip + '">' + label + '</span></td>' +
-          '<td>' + fmtAcesso(u.ultimoAcesso) + '</td>' +
-          '<td><span class="chip ' + (u.ativo ? 'c-green' : 'c-gray') + '">' + (u.ativo ? 'Ativo' : 'Inativo') + '</span></td>' +
-          '<td><span style="font-size:10px;color:var(--n500)">' + u.id.slice(0, 8) + '</span></td>' +
-          '</tr>';
-      }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--n500);padding:20px">Nenhum usuário</td></tr>';
+      cacheUsuarios = j.data || [];
+      renderTabelaUsuarios();
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--red);padding:20px">Erro ao carregar (' + e.message + ')</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--red);padding:20px">Erro ao carregar (' + esc(e.message) + ')</td></tr>';
     }
   }
   window.carregarUsuarios = carregarUsuarios;
+
+  // ── Cadastro / edição de usuários (POST/PUT/PATCH senha/DELETE em /usuarios) ──
+  var cacheUsuarios = [];
+  var usEditId = null;
+
+  function esc(s) {
+    return s == null ? '' : String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function msgErro(j, padrao) {
+    return (Array.isArray(j && j.message) ? j.message.join(' · ') : (j && j.message)) || padrao;
+  }
+  function usuarioAtual() {
+    try { return JSON.parse(localStorage.getItem('modorir_usuario') || 'null'); } catch (e) { return null; }
+  }
+
+  function renderTabelaUsuarios() {
+    var tbody = document.getElementById('usuarios-tbody');
+    if (!tbody) return;
+    var buscaEl = document.getElementById('usuarios-busca');
+    var termo = (buscaEl && buscaEl.value || '').trim().toLowerCase();
+    var lista = cacheUsuarios.filter(function (u) {
+      return !termo || (u.nome + ' ' + u.email + ' ' + (PERFIL_LABEL[u.perfil] || '')).toLowerCase().indexOf(termo) >= 0;
+    });
+    tbody.innerHTML = lista.map(function (u) {
+      var chip = PERFIL_CHIP[u.perfil] || 'c-gray';
+      var label = PERFIL_LABEL[u.perfil] || u.perfil;
+      return '<tr>' +
+        '<td style="font-weight:600">' + esc(u.nome) + '</td>' +
+        '<td><span class="mono">' + esc(u.email.split('@')[0]) + '</span> · ' + esc(u.email) + '</td>' +
+        '<td><span class="chip ' + chip + '">' + esc(label) + '</span></td>' +
+        '<td>' + fmtAcesso(u.ultimoAcesso) + '</td>' +
+        '<td><span class="chip ' + (u.ativo ? 'c-green' : 'c-gray') + '">' + (u.ativo ? 'Ativo' : 'Inativo') + '</span></td>' +
+        '<td><button class="btn sm" onclick="editarUsuario(\'' + u.id + '\')"><i class="ti ti-edit"></i>Editar</button></td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--n500);padding:20px">' +
+      (termo ? 'Nenhum usuário encontrado' : 'Nenhum usuário') + '</td></tr>';
+  }
+
+  function garantirModalUsuario() {
+    if (document.getElementById('modal-usuario')) return;
+    var opts = Object.keys(PERFIL_LABEL).map(function (k) {
+      return '<option value="' + k + '">' + PERFIL_LABEL[k] + '</option>';
+    }).join('');
+    var div = document.createElement('div');
+    div.className = 'modal-bg';
+    div.id = 'modal-usuario';
+    div.onclick = function (e) { if (e.target === div) closeModal('usuario'); };
+    div.innerHTML =
+      '<div class="modal" style="width:520px">' +
+        '<div class="modal-head"><div class="modal-title" id="us-modal-titulo">Novo Usuário</div>' +
+          '<div style="font-size:11px;color:var(--n500);margin-top:2px" id="us-modal-sub">Cria o acesso ao sistema</div></div>' +
+        '<div class="modal-body">' +
+          '<div class="field"><label>Nome completo *</label><input id="us-f-nome" placeholder="Ex.: Maria Souza"></div>' +
+          '<div class="f2">' +
+            '<div class="field"><label>E-mail (login) *</label><input id="us-f-email" type="email" placeholder="nome@empresa.com.br" autocomplete="off"></div>' +
+            '<div class="field"><label>Telefone</label><input id="us-f-tel" placeholder="(00) 00000-0000"></div>' +
+          '</div>' +
+          '<div class="f2">' +
+            '<div class="field"><label>Perfil de acesso *</label><select id="us-f-perfil">' + opts + '</select></div>' +
+            '<div class="field" id="us-f-ativo-wrap"><label>Status</label><select id="us-f-ativo"><option value="1">Ativo</option><option value="0">Inativo</option></select></div>' +
+          '</div>' +
+          '<div class="bloco-sec" id="us-f-senha-titulo" style="margin:4px 0 0">Senha</div>' +
+          '<div class="f2">' +
+            '<div class="field"><label id="us-f-senha-lbl">Senha *</label><input id="us-f-senha" type="password" autocomplete="new-password" placeholder="mínimo 6 caracteres"></div>' +
+            '<div class="field"><label>Confirmar senha</label><input id="us-f-senha2" type="password" autocomplete="new-password"></div>' +
+          '</div>' +
+          '<div id="us-f-erro" style="display:none;color:var(--red);font-size:11px"></div>' +
+        '</div>' +
+        '<div class="modal-foot">' +
+          '<button class="btn danger" id="us-btn-remover" style="margin-right:auto;display:none" onclick="removerUsuario()"><i class="ti ti-trash"></i>Remover</button>' +
+          '<button class="btn" onclick="closeModal(\'usuario\')">Cancelar</button>' +
+          '<button class="btn primary" id="us-btn-salvar" onclick="salvarUsuario()"><i class="ti ti-check"></i>Salvar</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(div);
+  }
+
+  function setVal(id, v) { var e = document.getElementById(id); if (e) e.value = v; }
+  function getVal(id) { var e = document.getElementById(id); return e ? e.value : ''; }
+  function mostrarErro(msg) {
+    var e = document.getElementById('us-f-erro');
+    if (!e) return;
+    e.textContent = msg || '';
+    e.style.display = msg ? 'block' : 'none';
+  }
+
+  function abrirModalUsuario(u) {
+    garantirModalUsuario();
+    usEditId = u ? u.id : null;
+    document.getElementById('us-modal-titulo').textContent = u ? 'Editar Usuário' : 'Novo Usuário';
+    document.getElementById('us-modal-sub').textContent = u ? u.email : 'Cria o acesso ao sistema';
+    setVal('us-f-nome', u ? u.nome : '');
+    setVal('us-f-email', u ? u.email : '');
+    setVal('us-f-tel', u && u.telefone ? u.telefone : '');
+    setVal('us-f-perfil', u ? u.perfil : 'COMERCIAL');
+    setVal('us-f-ativo', !u || u.ativo ? '1' : '0');
+    setVal('us-f-senha', '');
+    setVal('us-f-senha2', '');
+    document.getElementById('us-f-ativo-wrap').style.visibility = u ? 'visible' : 'hidden';
+    document.getElementById('us-f-senha-titulo').textContent = u ? 'Redefinir senha (opcional)' : 'Senha';
+    document.getElementById('us-f-senha-lbl').textContent = u ? 'Nova senha' : 'Senha *';
+    document.getElementById('us-btn-remover').style.display = u ? 'inline-flex' : 'none';
+    mostrarErro('');
+    openModal('usuario');
+    setTimeout(function () { var n = document.getElementById('us-f-nome'); if (n) n.focus(); }, 50);
+  }
+
+  window.novoUsuario = function () {
+    if (!window.getToken()) { toast('Faça login como administrador.', 'ti-alert-triangle'); return; }
+    abrirModalUsuario(null);
+  };
+
+  window.editarUsuario = function (id) {
+    var u = cacheUsuarios.filter(function (x) { return x.id === id; })[0];
+    if (!u) { toast('Usuário não encontrado — recarregue a tela.', 'ti-alert-triangle'); return; }
+    abrirModalUsuario(u);
+  };
+
+  window.salvarUsuario = async function () {
+    var nome = getVal('us-f-nome').trim();
+    var email = getVal('us-f-email').trim().toLowerCase();
+    var tel = getVal('us-f-tel').trim();
+    var perfil = getVal('us-f-perfil');
+    var ativo = getVal('us-f-ativo') === '1';
+    var senha = getVal('us-f-senha');
+    var senha2 = getVal('us-f-senha2');
+
+    if (!nome) return mostrarErro('Informe o nome.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return mostrarErro('Informe um e-mail válido.');
+    if (!usEditId || senha) {
+      if (senha.length < 6) return mostrarErro('A senha deve ter ao menos 6 caracteres.');
+      if (senha !== senha2) return mostrarErro('As senhas não conferem.');
+    }
+    var me = usuarioAtual();
+    if (usEditId && me && me.id === usEditId && !ativo) return mostrarErro('Você não pode inativar o próprio usuário.');
+    mostrarErro('');
+
+    var btn = document.getElementById('us-btn-salvar');
+    if (btn) btn.disabled = true;
+    try {
+      var r, j;
+      if (!usEditId) {
+        var body = { nome: nome, email: email, perfil: perfil, senha: senha, ativo: true };
+        if (tel) body.telefone = tel;
+        r = await window.apiFetch('/usuarios', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        j = await r.json().catch(function () { return {}; });
+        if (!r.ok) return mostrarErro(msgErro(j, 'Erro ao cadastrar usuário (HTTP ' + r.status + ').'));
+        toast('Usuário ' + nome + ' cadastrado!', 'ti-user-check');
+      } else {
+        r = await window.apiFetch('/usuarios/' + usEditId, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome: nome, email: email, perfil: perfil, telefone: tel || undefined, ativo: ativo }),
+        });
+        j = await r.json().catch(function () { return {}; });
+        if (!r.ok) return mostrarErro(msgErro(j, 'Erro ao salvar usuário (HTTP ' + r.status + ').'));
+        if (senha) {
+          var rs = await window.apiFetch('/usuarios/' + usEditId + '/senha', {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ novaSenha: senha }),
+          });
+          if (rs.status !== 204) {
+            var js = await rs.json().catch(function () { return {}; });
+            await carregarUsuarios();
+            return mostrarErro('Dados salvos, mas a senha não foi alterada: ' + msgErro(js, 'HTTP ' + rs.status));
+          }
+        }
+        toast('Usuário ' + nome + ' atualizado' + (senha ? ' (senha redefinida)' : '') + '.', 'ti-check');
+      }
+      closeModal('usuario');
+      await carregarUsuarios();
+    } catch (e) {
+      mostrarErro('Erro de conexão com o servidor.');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
+
+  window.removerUsuario = async function () {
+    if (!usEditId) return;
+    var u = cacheUsuarios.filter(function (x) { return x.id === usEditId; })[0];
+    if (!confirm('Remover o usuário ' + (u ? u.nome : '') + '? Ele perde o acesso ao sistema.')) return;
+    try {
+      var r = await window.apiFetch('/usuarios/' + usEditId, { method: 'DELETE' });
+      if (r.status !== 204) {
+        var j = await r.json().catch(function () { return {}; });
+        return mostrarErro(msgErro(j, 'Erro ao remover (HTTP ' + r.status + ').'));
+      }
+      toast('Usuário removido.', 'ti-trash');
+      closeModal('usuario');
+      await carregarUsuarios();
+    } catch (e) { mostrarErro('Erro de conexão com o servidor.'); }
+  };
+
+  document.addEventListener('input', function (e) {
+    if (e.target && e.target.id === 'usuarios-busca') renderTabelaUsuarios();
+  });
 
   // Troca de senha do próprio usuário via API
   window.alterarSenha = async function () {
