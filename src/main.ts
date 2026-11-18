@@ -8,8 +8,26 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AppConfig } from './config/configuration';
 
+const isProd = process.env.NODE_ENV === 'production';
+
+function exigirSegredosDeProducao(): void {
+  if (!isProd) return;
+  const fracos = ['JWT_SECRET', 'JWT_REFRESH_SECRET'].filter((k) => {
+    const v = process.env[k] ?? '';
+    return v.length < 32 || /trocar|troque|dev-/i.test(v);
+  });
+  if (fracos.length) {
+    throw new Error(
+      `Produção: defina ${fracos.join(' e ')} com valores longos e aleatórios (>= 32 caracteres).`,
+    );
+  }
+}
+
 async function bootstrap(): Promise<void> {
+  exigirSegredosDeProducao();
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Atrás do proxy HTTPS do provedor (Render/Koyeb etc.)
+  app.set('trust proxy', 1);
   const configService = app.get(ConfigService);
   const appConfig = configService.get<AppConfig>('app')!;
 
@@ -54,8 +72,12 @@ async function bootstrap(): Promise<void> {
     .addTag('parametrizacoes', 'Tabelas base do sistema (docx §12.2)')
     .addTag('cadastros', 'Base mestre de pessoas (docx §12.1)')
     .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, document);
+  // Em produção o Swagger fica desligado (expõe a API inteira), a não ser que
+  // SWAGGER_ENABLED=true seja definido explicitamente.
+  if (!isProd || process.env.SWAGGER_ENABLED === 'true') {
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document);
+  }
 
   await app.listen(appConfig.port);
   // eslint-disable-next-line no-console

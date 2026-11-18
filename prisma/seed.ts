@@ -228,6 +228,11 @@ async function seedContratos() {
 }
 
 async function seedUsuarios() {
+  // PRODUÇÃO: nenhum usuário de demonstração. O administrador inicial é criado
+  // pelo AdminBootstrapService na subida da API (ADMIN_INICIAL_EMAIL/SENHA);
+  // os demais usuários são cadastrados pela tela de Usuários.
+  if (process.env.NODE_ENV === 'production') return;
+
   // Senhas de demonstração (DEV). Trocar em produção.
   const usuarios = [
     { nome: 'ADMINISTRADOR', email: 'admin@modorir.com.br', perfil: PerfilAcesso.ADMINISTRADOR, senha: 'admin123' },

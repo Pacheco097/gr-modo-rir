@@ -1,0 +1,35 @@
+# Blueprint do Render (https://render.com) — plano GRATUITO.
+# Banco: PostgreSQL gratuito do Neon (https://neon.tech) — cole a string em DATABASE_URL.
+services:
+  - type: web
+    name: gr-modo-rir
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_PREFIX
+        value: api/v1
+      - key: AUDITORIA_USUARIO_PADRAO
+        value: sistema
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # Preenchidos no painel do Render na criação (não ficam no Git):
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_INICIAL_EMAIL
+        sync: false
+      - key: ADMIN_INICIAL_SENHA
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

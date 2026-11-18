@@ -14,7 +14,8 @@ export interface JwtConfig {
 
 export default (): { app: AppConfig; jwt: JwtConfig } => ({
   app: {
-    port: parseInt(process.env.API_PORT ?? '3000', 10),
+    // PORT é definido automaticamente por provedores como Render/Koyeb.
+    port: parseInt(process.env.PORT ?? process.env.API_PORT ?? '3000', 10),
     apiPrefix: process.env.API_PREFIX ?? 'api/v1',
     corsOrigin: process.env.CORS_ORIGIN ?? '*',
     auditoriaUsuarioPadrao: process.env.AUDITORIA_USUARIO_PADRAO ?? 'sistema',
