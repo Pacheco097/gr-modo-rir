@@ -1,0 +1,39 @@
+# A cada push na main deste repositório, copia o código para o repositório
+# que está ligado ao Render (Pacheco097/gr-modo-rir). O Render faz o deploy
+# automaticamente quando recebe o push (autoDeploy: true no render.yaml).
+#
+# Requer o secret ESPELHO_TOKEN: token "fine-grained" do GitHub com acesso
+# apenas ao Pacheco097/gr-modo-rir e permissões Contents + Workflows = Read and write.
+name: Espelhar para o deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: espelhar
+  cancel-in-progress: false
+
+jobs:
+  espelhar:
+    # Não roda na cópia (o arquivo também é copiado para lá).
+    if: github.repository == 'iandallamaria-oss/gr-modo-rir'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Enviar para Pacheco097/gr-modo-rir
+        env:
+          ESPELHO_TOKEN: ${{ secrets.ESPELHO_TOKEN }}
+        run: |
+          if [ -z "$ESPELHO_TOKEN" ]; then
+            echo "::error::Secret ESPELHO_TOKEN não configurado."
+            exit 1
+          fi
+          git push --force \
+            "https://x-access-token:${ESPELHO_TOKEN}@github.com/Pacheco097/gr-modo-rir.git" \
+            HEAD:main

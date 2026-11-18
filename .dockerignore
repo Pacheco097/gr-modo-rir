@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+!.env.example
+backups
+uploads/boletas/*
+*.log
+*.bak
+Boleta_*.html
+.claude
+.git
+*.md
