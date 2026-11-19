@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="gr-versao" content="2026-11-19.1">
+<meta name="gr-versao" content="2026-11-19.2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MODO · RIR — Sistema de Gestão</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4706,25 +4706,25 @@ function mostrarLogin() {
           <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;color:#1C3527">MODO · RIR</div>
           <div style="font-size:10px;color:#6B7A70;letter-spacing:2px;text-transform:uppercase">Sistema de Gestão</div>
         </div>
+        <form id="login-form" method="post" action="#" autocomplete="on" onsubmit="event.preventDefault();fazerLogin();">
         <div style="margin-bottom:12px">
-          <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px">E-mail</label>
-          <input type="text" id="login-user" value="" placeholder="seu@email.com" autocomplete="username"
+          <label for="login-user" style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px">E-mail</label>
+          <input type="email" id="login-user" name="email" value="" placeholder="seu@email.com" autocomplete="username"
             style="width:100%;padding:10px 12px;border:1.5px solid #D1D5DB;border-radius:8px;font-size:13px;outline:none;font-family:inherit"
-            onfocus="this.style.borderColor='#2E7D4F'" onblur="this.style.borderColor='#D1D5DB'"
-            onkeydown="if(event.key==='Enter')fazerLogin()">
+            onfocus="this.style.borderColor='#2E7D4F'" onblur="this.style.borderColor='#D1D5DB'">
         </div>
         <div style="margin-bottom:20px">
-          <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px">Senha</label>
-          <input type="password" id="login-pass" value="" placeholder="Senha" autocomplete="current-password"
+          <label for="login-pass" style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px">Senha</label>
+          <input type="password" id="login-pass" name="password" value="" placeholder="Senha" autocomplete="current-password"
             style="width:100%;padding:10px 12px;border:1.5px solid #D1D5DB;border-radius:8px;font-size:13px;outline:none;font-family:inherit"
-            onfocus="this.style.borderColor='#2E7D4F'" onblur="this.style.borderColor='#D1D5DB'"
-            onkeydown="if(event.key==='Enter')fazerLogin()">
+            onfocus="this.style.borderColor='#2E7D4F'" onblur="this.style.borderColor='#D1D5DB'">
         </div>
-        <button onclick="fazerLogin()"
+        <button type="submit"
           style="width:100%;padding:12px;background:#1C3527;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s"
           onmouseover="this.style.background='#2E7D4F'" onmouseout="this.style.background='#1C3527'">
           Entrar no Sistema
         </button>
+        </form>
         <div id="login-erro" style="margin-top:10px;color:#C0392B;font-size:11px;text-align:center;display:none"></div>
       </div>`;
     document.body.appendChild(overlay);
@@ -14628,21 +14628,53 @@ if (typeof dashRender === 'function') dashRender();
       window.setToken(data.accessToken);
       window.setRefresh(data.refreshToken);
       try { localStorage.setItem('modorir_usuario', JSON.stringify(data.usuario)); } catch (e) {}
-      // atualiza o estado de sessão do app (binding compartilhado entre scripts)
-      try { usuarioLogado = { login: data.usuario.email, nome: data.usuario.nome, perfil: data.usuario.perfil, email: data.usuario.email }; } catch (e) {}
-
-      var ov = document.getElementById('login-overlay'); if (ov) ov.style.display = 'none';
-      var nameEl = document.getElementById('sidebar-user-name');
-      var roleEl = document.getElementById('sidebar-user-role');
-      var avatarEl = document.getElementById('user-avatar');
-      if (nameEl) nameEl.textContent = data.usuario.nome;
-      if (roleEl) roleEl.textContent = data.usuario.perfil + ' · Modo/RIR';
-      if (avatarEl) avatarEl.textContent = data.usuario.nome.split(' ').map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase();
-      if (typeof toast === 'function') toast('Bem-vindo, ' + data.usuario.nome + '! (login real)', 'ti-user-check');
-      if (typeof lsAtualizarStatus === 'function') lsAtualizarStatus();
+      if (erroEl) erroEl.style.display = 'none';
+      aplicarSessao(data.usuario);
+      if (typeof toast === 'function') toast('Bem-vindo, ' + data.usuario.nome + '!', 'ti-user-check');
     } catch (e) {
       if (erroEl) { erroEl.textContent = 'Erro de conexão com o servidor.'; erroEl.style.display = 'block'; }
     }
+  };
+
+  // Aplica o usuário logado na interface (sidebar, estado global) e esconde o login.
+  function aplicarSessao(usuario) {
+    // atualiza o estado de sessão do app (binding compartilhado entre scripts)
+    try { usuarioLogado = { login: usuario.email, nome: usuario.nome, perfil: usuario.perfil, email: usuario.email }; } catch (e) {}
+    var ov = document.getElementById('login-overlay'); if (ov) ov.style.display = 'none';
+    var nameEl = document.getElementById('sidebar-user-name');
+    var roleEl = document.getElementById('sidebar-user-role');
+    var avatarEl = document.getElementById('user-avatar');
+    if (nameEl) nameEl.textContent = usuario.nome;
+    if (roleEl) roleEl.textContent = usuario.perfil + ' · Modo/RIR';
+    if (avatarEl) avatarEl.textContent = usuario.nome.split(' ').map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase();
+    if (typeof lsAtualizarStatus === 'function') lsAtualizarStatus();
+  }
+
+  // "Manter conectado": ao abrir o sistema, se houver sessão salva e ainda
+  // válida (refresh token de 7 dias, renovado a cada uso), entra direto.
+  async function restaurarSessao() {
+    var usuario;
+    try { usuario = JSON.parse(localStorage.getItem('modorir_usuario') || 'null'); } catch (e) { usuario = null; }
+    if (!usuario || !window.getRefresh()) return false;
+    var ok = await tentarRefresh();
+    if (!ok) {
+      window.setToken(''); window.setRefresh('');
+      try { localStorage.removeItem('modorir_usuario'); } catch (e) {}
+      return false;
+    }
+    aplicarSessao(usuario);
+    if (typeof window.hidratarParametrizacoes === 'function') {
+      try { await window.hidratarParametrizacoes(); if (typeof sincronizarBoleta === 'function') sincronizarBoleta(); } catch (e) {}
+    }
+    return true;
+  }
+
+  // Mostra o login normalmente e, em paralelo, tenta retomar a sessão salva;
+  // se conseguir, o login some sozinho (sem piscar a tela por trás).
+  var _mostrarLoginOrig = window.mostrarLogin;
+  window.mostrarLogin = function () {
+    if (typeof _mostrarLoginOrig === 'function') _mostrarLoginOrig();
+    restaurarSessao().catch(function () {});
   };
 
   window.fazerLogout = function () {
